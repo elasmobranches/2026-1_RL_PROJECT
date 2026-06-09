@@ -49,3 +49,9 @@ def test_reset_clears_state():
     env.reset(seed=1)
     assert env.step_count == 0
     assert np.all(env.crop_states == 0)  # all unknown after reset
+
+
+def test_gymnasium_check_env():
+    from gymnasium.utils.env_checker import check_env
+    env = FarmEnv(n_lanes=2, field_height=2)
+    check_env(env, warn=True)
