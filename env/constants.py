@@ -1,5 +1,3 @@
-import numpy as np
-
 # Cell types (ch0)
 CELL_PATH = 0
 CELL_CROP = 1
