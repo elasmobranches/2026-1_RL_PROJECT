@@ -16,6 +16,8 @@ def generate_field_map(n_lanes: int = 3, field_height: int = 6) -> np.ndarray:
       odd cols  → CELL_CROP
       even cols → CELL_PATH (driving lanes)
     """
+    if n_lanes < 1 or field_height < 1:
+        raise ValueError(f"n_lanes and field_height must be >= 1, got n_lanes={n_lanes}, field_height={field_height}")
     H = field_height + 4
     W = 2 * n_lanes + 3
     layout = np.full((H, W), CELL_WALL, dtype=np.int32)

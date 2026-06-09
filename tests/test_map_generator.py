@@ -72,3 +72,25 @@ def test_init_crop_states_reproducible():
     s1 = init_crop_states(layout, rng=np.random.default_rng(0))
     s2 = init_crop_states(layout, rng=np.random.default_rng(0))
     np.testing.assert_array_equal(s1, s2)
+
+
+def test_init_crop_states_probability_distribution():
+    """Crop states should roughly follow CROP_STATE_PROBS distribution."""
+    from env.constants import CROP_STATE_PROBS, CROP_STATE_VALUES, STATE_NORMAL_DONE, STATE_HARVEST_PENDING, STATE_PEST_PENDING
+    layout = generate_field_map(n_lanes=10, field_height=50)  # large field for statistics
+    states = init_crop_states(layout, rng=np.random.default_rng(0))
+    crop_cells = states[layout == 1]  # CELL_CROP = 1
+    total = len(crop_cells)
+    for state_val, expected_prob in zip(CROP_STATE_VALUES, CROP_STATE_PROBS):
+        actual = np.sum(crop_cells == state_val) / total
+        assert abs(actual - expected_prob) < 0.05, (
+            f"State {state_val}: expected ~{expected_prob:.0%}, got {actual:.1%}"
+        )
+
+
+def test_generate_field_map_invalid_inputs():
+    import pytest
+    with pytest.raises(ValueError):
+        generate_field_map(n_lanes=0, field_height=4)
+    with pytest.raises(ValueError):
+        generate_field_map(n_lanes=3, field_height=0)
