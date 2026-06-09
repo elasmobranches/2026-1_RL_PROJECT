@@ -56,8 +56,17 @@ class HighLevelFarmEnv(gym.Env):
                 obs[i] = done / len(crops)
         return obs
 
+    def _is_lane_already_done(self, lane_col: int) -> bool:
+        """True if all crops adjacent to lane_col are already in DONE_STATES."""
+        crops = self.inner._adjacent_lane_crops(lane_col)
+        return bool(crops) and all(
+            self.inner.crop_states[r, c] in DONE_STATES for (r, c) in crops
+        )
+
     def step(self, action: int):
         target_col = self.lane_cols[action]
+        was_already_done = self._is_lane_already_done(target_col)
+
         self.inner.target_lane_col = target_col
         self.inner.step_count = 0
 
@@ -78,7 +87,8 @@ class HighLevelFarmEnv(gym.Env):
         self._lane_visits += 1
 
         hl_reward = -total_steps * HL_STEP_COST
-        if lane_done:
+        # Only reward for newly completed lane (not revisiting an already-done lane)
+        if lane_done and not was_already_done:
             hl_reward += REWARD_HL_LANE_DONE
 
         all_done = self.inner._is_complete()
