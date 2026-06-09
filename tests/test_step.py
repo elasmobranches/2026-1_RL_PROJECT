@@ -1,4 +1,7 @@
 # tests/test_step.py
+# New layout: n_beds=2 → W=9, H=6, lane cols in field rows: 1, 4, 7
+# Col 4 = inner lane (CROP left=col3, right=col5)
+# Col 1 = edge lane (WALL left=col0, CROP right=col2)
 import numpy as np
 import pytest
 from env.farm_env import FarmEnv
@@ -14,7 +17,7 @@ from env.constants import (
 
 
 def make_env(seed=0):
-    env = FarmEnv(n_lanes=2, field_height=2, max_steps=500)
+    env = FarmEnv(n_beds=2, field_height=2, max_steps=500)
     env.reset(seed=seed)
     return env
 
@@ -23,7 +26,7 @@ def make_env(seed=0):
 
 def test_move_down_from_headland():
     env = make_env()
-    start = env.agent_pos
+    start = env.agent_pos          # (1, 1) — top headland, first lane
     obs, reward, term, trunc, info = env.step(ACT_DOWN)
     assert env.agent_pos == (start[0] + 1, start[1])
     assert abs(reward - REWARD_STEP) < 1e-6
@@ -31,9 +34,9 @@ def test_move_down_from_headland():
 
 def test_collision_into_crop():
     env = make_env()
-    env.agent_pos = (2, 2)   # lane in field row
-    obs, reward, term, trunc, info = env.step(ACT_LEFT)  # into CROP
-    assert env.agent_pos == (2, 2)  # position unchanged
+    env.agent_pos = (2, 4)         # inner lane col 4 in field row
+    obs, reward, term, trunc, info = env.step(ACT_LEFT)  # col3 = CROP
+    assert env.agent_pos == (2, 4)  # position unchanged
     assert reward < REWARD_STEP     # collision penalty applied
 
 
@@ -48,19 +51,19 @@ def test_step_count_increments():
 
 def test_scout_reveals_adjacent_cells():
     env = make_env()
-    env.agent_pos = (2, 2)
-    env._true_states[2, 1] = STATE_NORMAL_DONE
-    env._true_states[2, 3] = STATE_HARVEST_PENDING
+    env.agent_pos = (2, 4)         # inner lane: left=col3, right=col5
+    env._true_states[2, 3] = STATE_NORMAL_DONE
+    env._true_states[2, 5] = STATE_HARVEST_PENDING
     env.crop_states[:] = STATE_UNKNOWN
 
     env.step(ACT_SCOUT)
-    assert env.crop_states[2, 1] == STATE_NORMAL_DONE
-    assert env.crop_states[2, 3] == STATE_HARVEST_PENDING
+    assert env.crop_states[2, 3] == STATE_NORMAL_DONE
+    assert env.crop_states[2, 5] == STATE_HARVEST_PENDING
 
 
 def test_scout_reward_normal():
     env = make_env()
-    env.agent_pos = (2, 2)
+    env.agent_pos = (2, 4)
     adj = env._adjacent_crop_cells()
     for pos in adj:
         env._true_states[pos] = STATE_NORMAL_DONE
@@ -73,22 +76,31 @@ def test_scout_reward_normal():
 
 def test_scout_reward_harvest_pending():
     env = make_env()
-    env.agent_pos = (2, 2)
+    env.agent_pos = (2, 4)
     adj = env._adjacent_crop_cells()
     for pos in adj:
         env._true_states[pos] = STATE_HARVEST_PENDING
     env.crop_states[:] = STATE_UNKNOWN
 
     _, reward, _, _, _ = env.step(ACT_SCOUT)
-    expected = REWARD_STEP + len(adj) * REWARD_SCOUT_NEW  # no NORMAL_CONFIRM
+    expected = REWARD_STEP + len(adj) * REWARD_SCOUT_NEW
     assert abs(reward - expected) < 1e-5
+
+
+def test_edge_lane_scouts_one_crop_only():
+    """Edge lane (col 1) only has CROP on right — scout sees exactly 1 cell."""
+    env = make_env()
+    env.agent_pos = (2, 1)         # edge lane: left=WALL, right=col2=CROP
+    adj = env._adjacent_crop_cells()
+    assert len(adj) == 1
+    assert adj[0] == (2, 2)
 
 
 # --- Harvest ---
 
 def test_harvest_action():
     env = make_env()
-    env.agent_pos = (2, 2)
+    env.agent_pos = (2, 4)
     adj = env._adjacent_crop_cells()
     for pos in adj:
         env.crop_states[pos] = STATE_HARVEST_PENDING
@@ -103,7 +115,7 @@ def test_harvest_action():
 
 def test_pest_action():
     env = make_env()
-    env.agent_pos = (2, 2)
+    env.agent_pos = (2, 4)
     adj = env._adjacent_crop_cells()
     for pos in adj:
         env.crop_states[pos] = STATE_PEST_PENDING
@@ -123,6 +135,7 @@ def test_terminated_when_all_done():
     last = env._crop_cells[-1]
     r_last, c_last = last
     env.crop_states[last] = STATE_HARVEST_PENDING
+    # Find adjacent PATH cell
     if c_last + 1 < env.W and env.layout[r_last, c_last + 1] == CELL_PATH:
         env.agent_pos = (r_last, c_last + 1)
     else:
@@ -135,7 +148,7 @@ def test_terminated_when_all_done():
 
 
 def test_truncated_on_max_steps():
-    env = FarmEnv(n_lanes=2, field_height=2, max_steps=3)
+    env = FarmEnv(n_beds=2, field_height=2, max_steps=3)
     env.reset(seed=0)
     for _ in range(3):
         _, _, terminated, truncated, _ = env.step(ACT_DOWN)

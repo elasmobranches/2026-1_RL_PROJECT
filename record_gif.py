@@ -63,7 +63,7 @@ def render_frame(env, step, reward, coverage):
 
 
 def record(seed=3, out='agent_demo.gif', fps=6):
-    env = FarmEnv(n_lanes=3, field_height=6)
+    env = FarmEnv(n_beds=4, field_height=8)
     model = MaskablePPO.load('models/farm_ppo')
 
     obs, _ = env.reset(seed=seed)

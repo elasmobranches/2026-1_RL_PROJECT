@@ -35,7 +35,7 @@ def run_episode(model, env_raw, seed=0, render=False):
 
 
 def evaluate(model_path="models/farm_ppo", n_episodes=50):
-    env = FarmEnv(n_lanes=3, field_height=6)
+    env = FarmEnv(n_beds=4, field_height=8)
     model = MaskablePPO.load(model_path)
 
     rewards, steps_list, coverages, successes = [], [], [], []
@@ -81,7 +81,7 @@ def _plot_results(rewards, steps_list, coverages, successes):
 
 def visualize_single_episode(model_path="models/farm_ppo", seed=0):
     """단일 에피소드를 matplotlib으로 시각화."""
-    env = FarmEnv(n_lanes=3, field_height=6)
+    env = FarmEnv(n_beds=4, field_height=8)
     model = MaskablePPO.load(model_path)
 
     STATE_COLORS = {

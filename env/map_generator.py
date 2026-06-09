@@ -5,21 +5,30 @@ from env.constants import (
 )
 
 
-def generate_field_map(n_lanes: int = 3, field_height: int = 6) -> np.ndarray:
+def generate_field_map(n_beds: int = 4, field_height: int = 8) -> np.ndarray:
     """
-    Row-based field map with vertical driving lanes.
+    Field map with 2-column-wide crop beds and vertical driving lanes.
 
-    H = field_height + 4  (2 walls + 2 headlands)
-    W = 2*n_lanes + 3     (walls + alternating C/P cols + outer crop col)
+    Each crop bed is 2 columns wide. Driving lanes separate every bed,
+    so a robot in a lane can only scout the immediately adjacent (inner)
+    crop column — the far (outer) column must be scouted from the other lane.
 
-    Field column pattern (col 1..W-2): C P C P C P C
-      odd cols  → CELL_CROP
-      even cols → CELL_PATH (driving lanes)
-    """
-    if n_lanes < 1 or field_height < 1:
-        raise ValueError(f"n_lanes and field_height must be >= 1, got n_lanes={n_lanes}, field_height={field_height}")
     H = field_height + 4
-    W = 2 * n_lanes + 3
+    W = 3*n_beds + 3  (wall + [lane + bed(2)] * n_beds + lane + wall)
+
+    Field column pattern (col 1..W-2):
+      (col-1) % 3 == 0  → CELL_PATH  (driving lane)
+      (col-1) % 3 == 1  → CELL_CROP  (inner crop of bed)
+      (col-1) % 3 == 2  → CELL_CROP  (outer crop of bed)
+
+    Example n_beds=4: W P CC P CC P CC P CC P W  (W=15)
+    """
+    if n_beds < 1 or field_height < 1:
+        raise ValueError(
+            f"n_beds and field_height must be >= 1, got n_beds={n_beds}, field_height={field_height}"
+        )
+    H = field_height + 4
+    W = 3 * n_beds + 3
     layout = np.full((H, W), CELL_WALL, dtype=np.int32)
 
     layout[1, 1:-1] = CELL_PATH       # top headland
@@ -27,7 +36,7 @@ def generate_field_map(n_lanes: int = 3, field_height: int = 6) -> np.ndarray:
 
     for row in range(2, H - 2):       # field rows
         for col in range(1, W - 1):
-            layout[row, col] = CELL_CROP if col % 2 == 1 else CELL_PATH
+            layout[row, col] = CELL_PATH if (col - 1) % 3 == 0 else CELL_CROP
 
     return layout
 

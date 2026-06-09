@@ -22,17 +22,17 @@ class FarmEnv(gym.Env):
 
     def __init__(
         self,
-        n_lanes: int = 3,
-        field_height: int = 6,
+        n_beds: int = 4,
+        field_height: int = 8,
         max_steps: int | None = None,
         render_mode: str | None = None,
     ):
         super().__init__()
-        self.n_lanes = n_lanes
+        self.n_beds = n_beds
         self.field_height = field_height
         self.render_mode = render_mode
 
-        self.layout = generate_field_map(n_lanes, field_height)
+        self.layout = generate_field_map(n_beds, field_height)
         self.H, self.W = self.layout.shape
         self.max_steps = max_steps or self.H * self.W * 3
 
@@ -44,7 +44,7 @@ class FarmEnv(gym.Env):
         self.action_space = spaces.Discrete(N_ACTIONS)
 
         # Mutable state (initialised in reset)
-        self.agent_pos: tuple[int, int] = (1, 2)
+        self.agent_pos: tuple[int, int] = (1, 1)
         self._true_states: np.ndarray = np.zeros((self.H, self.W), dtype=np.int32)
         self.crop_states: np.ndarray = np.zeros((self.H, self.W), dtype=np.int32)
         self.step_count: int = 0
@@ -55,7 +55,7 @@ class FarmEnv(gym.Env):
         if seed is not None:
             self._rng = np.random.default_rng(seed)
 
-        self.agent_pos = (1, 2)          # top headland, first lane column
+        self.agent_pos = (1, 1)          # top headland, first lane column
         self._true_states = init_crop_states(self.layout, self._rng)
         self.crop_states = np.zeros((self.H, self.W), dtype=np.int32)
         self.step_count = 0

@@ -15,7 +15,7 @@ def mask_fn(env):
 
 def make_env(seed=0):
     def _init():
-        env = FarmEnv(n_lanes=3, field_height=6)
+        env = FarmEnv(n_beds=4, field_height=8)
         env = ActionMasker(env, mask_fn)
         env = Monitor(env)
         return env
