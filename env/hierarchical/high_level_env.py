@@ -44,17 +44,16 @@ class HighLevelFarmEnv(gym.Env):
         return self._get_hl_obs(), {}
 
     def _get_hl_obs(self) -> np.ndarray:
-        """Return fraction of adjacent crops that have been visited (non-unknown) per lane."""
-        from env.constants import STATE_UNKNOWN
+        """Return fraction of adjacent crops in DONE_STATES per lane."""
         obs = np.zeros(self.n_lanes, dtype=np.float32)
         for i, lane_col in enumerate(self.lane_cols):
             crops = self.inner._adjacent_lane_crops(lane_col)
             if crops:
-                visited = sum(
+                done = sum(
                     1 for (r, c) in crops
-                    if self.inner.crop_states[r, c] != STATE_UNKNOWN
+                    if self.inner.crop_states[r, c] in DONE_STATES
                 )
-                obs[i] = visited / len(crops)
+                obs[i] = done / len(crops)
         return obs
 
     def step(self, action: int):

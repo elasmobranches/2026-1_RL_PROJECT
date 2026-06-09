@@ -56,10 +56,17 @@ def test_inner_target_lane_set_correctly():
 
 
 def test_obs_increases_after_step():
-    env = make_env()
+    """Lane 0 coverage increases after processing it (robust: force normal crops)."""
+    from env.constants import STATE_NORMAL_DONE
+    env = HighLevelFarmEnv(_MockLowLevel(), n_beds=2, field_height=2)
     env.reset(seed=0)
-    obs_before, _ = env.reset(seed=0)
-    obs_after, _, _, _, _ = env.step(0)
+    # Force lane 0 adjacent crops to be NORMAL so mock's scout action completes them
+    lane0_col = env.lane_cols[0]
+    for (r, c) in env.inner._adjacent_lane_crops(lane0_col):
+        env.inner._true_states[r, c] = STATE_NORMAL_DONE
+    obs_before = env._get_hl_obs().copy()
+    env.step(0)
+    obs_after = env._get_hl_obs()
     assert obs_after[0] > obs_before[0], "Lane 0 coverage should increase after step"
 
 
