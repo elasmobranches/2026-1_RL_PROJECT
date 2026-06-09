@@ -42,3 +42,9 @@ REWARD_COMPLETION      = 20.0
 # Crop state probability (normal / harvest / pest)
 CROP_STATE_PROBS = [0.60, 0.25, 0.15]
 CROP_STATE_VALUES = [STATE_NORMAL_DONE, STATE_HARVEST_PENDING, STATE_PEST_PENDING]
+
+# Hierarchical RL (Step 2)
+REWARD_LANE_COMPLETE = 10.0   # Low-level: 레인 완료 보상
+REWARD_HL_LANE_DONE  =  5.0   # High-level: 레인 완료 보상
+REWARD_HL_ALL_DONE   = 20.0   # High-level: 전체 완료 보상
+HL_STEP_COST         =  0.01  # High-level: 스텝당 비용 계수
