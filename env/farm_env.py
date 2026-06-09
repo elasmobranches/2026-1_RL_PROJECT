@@ -171,7 +171,11 @@ class FarmEnv(gym.Env):
 
     def render(self):
         symbols = {CELL_PATH: ".", CELL_CROP: "C", CELL_WALL: "#"}
-        state_sym = {0: "?", 1: "N", 2: "H", 3: "P", 4: "h", 5: "p"}
+        state_sym = {
+            STATE_UNKNOWN: "?", STATE_NORMAL_DONE: "N",
+            STATE_HARVEST_PENDING: "H", STATE_PEST_PENDING: "P",
+            STATE_HARVEST_DONE: "h", STATE_PEST_DONE: "p",
+        }
         r_a, c_a = self.agent_pos
         rows = []
         for r in range(self.H):
