@@ -25,13 +25,13 @@ STATE_COLORS = {
 CELL_COLORS = {CELL_PATH: [0.97, 0.97, 0.97], CELL_WALL: [0.15, 0.15, 0.15]}
 
 LEGEND_ITEMS = [
-    mpatches.Patch(color=STATE_COLORS[STATE_UNKNOWN],         label='미예찰'),
-    mpatches.Patch(color=STATE_COLORS[STATE_NORMAL_DONE],     label='정상'),
-    mpatches.Patch(color=STATE_COLORS[STATE_HARVEST_PENDING], label='수확 대기'),
-    mpatches.Patch(color=STATE_COLORS[STATE_PEST_PENDING],    label='방제 대기'),
-    mpatches.Patch(color=STATE_COLORS[STATE_HARVEST_DONE],    label='수확 완료'),
-    mpatches.Patch(color=STATE_COLORS[STATE_PEST_DONE],       label='방제 완료'),
-    mpatches.Patch(color=[0.10, 0.10, 0.90],                  label='로봇'),
+    mpatches.Patch(color=STATE_COLORS[STATE_UNKNOWN],         label='Unknown'),
+    mpatches.Patch(color=STATE_COLORS[STATE_NORMAL_DONE],     label='Normal'),
+    mpatches.Patch(color=STATE_COLORS[STATE_HARVEST_PENDING], label='Harvest Pending'),
+    mpatches.Patch(color=STATE_COLORS[STATE_PEST_PENDING],    label='Pest Pending'),
+    mpatches.Patch(color=STATE_COLORS[STATE_HARVEST_DONE],    label='Harvest Done'),
+    mpatches.Patch(color=STATE_COLORS[STATE_PEST_DONE],       label='Pest Done'),
+    mpatches.Patch(color=[0.10, 0.10, 0.90],                  label='Robot'),
 ]
 
 
@@ -48,7 +48,7 @@ def render_frame(env, step, reward, coverage):
     img[ra, ca] = [0.10, 0.10, 0.90]
 
     ax.imshow(img, interpolation='nearest', aspect='equal')
-    ax.set_title(f'Step {step:3d}  |  Coverage {coverage:.0%}  |  Reward {reward:+.1f}',
+    ax.set_title(f'Step {step:3d}  |  Coverage {coverage:.0%}  |  Cumulative Reward {reward:+.1f}',
                  fontsize=10, pad=6)
     ax.set_xticks([]); ax.set_yticks([])
     ax.legend(handles=LEGEND_ITEMS, loc='upper right',
