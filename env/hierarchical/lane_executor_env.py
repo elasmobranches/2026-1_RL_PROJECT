@@ -10,6 +10,7 @@ from env.constants import (
     REWARD_SCOUT_NEW, REWARD_NORMAL_CONFIRM,
     REWARD_HARVEST, REWARD_PEST,
     REWARD_LANE_COMPLETE, REWARD_LANE_STEP,
+    REWARD_GOAL_REACH,
 )
 
 
@@ -45,6 +46,7 @@ class LaneExecutorEnv(FarmEnv):
         obs, info = super().reset(seed=seed)
         self.target_lane_col = (options or {}).get("target_lane_col", self.lane_cols[0])
         self.step_count = 0
+        self._goal_reached: bool = False   # tracks first arrival at target lane this episode
         return self._get_obs(), info
 
     def _get_obs(self) -> np.ndarray:
@@ -65,6 +67,11 @@ class LaneExecutorEnv(FarmEnv):
             reward += self._handle_harvest()
         elif action == ACT_PEST:
             reward += self._handle_pest()
+
+        # Goal-reaching: first arrival at target lane column
+        if not self._goal_reached and self.agent_pos[1] == self.target_lane_col:
+            reward += REWARD_GOAL_REACH
+            self._goal_reached = True
 
         lane_done = self._is_lane_complete()
         if lane_done:

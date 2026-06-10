@@ -49,3 +49,6 @@ REWARD_LANE_STEP     = -0.1   # low-level: per-step penalty (same as flat REWARD
 REWARD_HL_LANE_DONE  =  5.0   # high-level: bonus when dispatched lane completes
 REWARD_HL_ALL_DONE   = 20.0   # high-level: bonus when all crops done
 HL_STEP_COST         =  0.01  # high-level: per-step cost coefficient (not a reward, hence no REWARD_ prefix)
+
+# Step 3: Goal-reaching
+REWARD_GOAL_REACH    =  2.0   # low-level: first arrival at target lane column this episode
