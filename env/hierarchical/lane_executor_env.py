@@ -6,10 +6,10 @@ from env.constants import (
     CELL_CROP, DONE_STATES,
     MOVE_DELTA,
     ACT_SCOUT, ACT_HARVEST, ACT_PEST,
-    REWARD_STEP, REWARD_COLLISION,
+    REWARD_COLLISION,
     REWARD_SCOUT_NEW, REWARD_NORMAL_CONFIRM,
     REWARD_HARVEST, REWARD_PEST,
-    REWARD_LANE_COMPLETE,
+    REWARD_LANE_COMPLETE, REWARD_LANE_STEP,
 )
 
 
@@ -55,7 +55,7 @@ class LaneExecutorEnv(FarmEnv):
 
     def step(self, action: int):
         self.step_count += 1
-        reward = REWARD_STEP
+        reward = REWARD_LANE_STEP
 
         if action in MOVE_DELTA:
             reward += self._handle_move(action)

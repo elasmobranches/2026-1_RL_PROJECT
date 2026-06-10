@@ -45,6 +45,7 @@ CROP_STATE_VALUES = [STATE_NORMAL_DONE, STATE_HARVEST_PENDING, STATE_PEST_PENDIN
 
 # Hierarchical RL (Step 2)
 REWARD_LANE_COMPLETE = 10.0   # low-level: bonus when target lane fully processed
+REWARD_LANE_STEP     = -0.1   # low-level: per-step penalty (same as flat REWARD_STEP; -0.3 destabilised training)
 REWARD_HL_LANE_DONE  =  5.0   # high-level: bonus when dispatched lane completes
 REWARD_HL_ALL_DONE   = 20.0   # high-level: bonus when all crops done
 HL_STEP_COST         =  0.01  # high-level: per-step cost coefficient (not a reward, hence no REWARD_ prefix)
