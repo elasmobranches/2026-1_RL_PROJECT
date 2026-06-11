@@ -49,13 +49,13 @@ def make_lane_env(seed=0):
 
 def train_low_level(total_timesteps=700_000, save_path="models/lane_executor_s3"):
     os.makedirs("models", exist_ok=True)
-    vec_env = DummyVecEnv([make_lane_env(seed=i) for i in range(4)])
+    vec_env = DummyVecEnv([make_lane_env(seed=i) for i in range(16)])
 
     model = MaskablePPO(
         policy="MlpPolicy",
         env=vec_env,
-        n_steps=2048,
-        batch_size=64,
+        n_steps=512,
+        batch_size=256,
         n_epochs=10,
         learning_rate=3e-4,
         gamma=0.99,
@@ -81,8 +81,8 @@ def make_hl_env(low_level_model, seed=0):
     return _init
 
 
-def train_high_level_dqn(low_level_model, total_timesteps=300_000, save_path="models/high_level_s3"):
-    # DQN은 단일 환경 (VecEnv 미지원 — DummyVecEnv(1) 사용)
+def train_high_level_dqn(low_level_model, total_timesteps=30_000, save_path="models/high_level_s3"):
+    # HL env slow (each step = full LL rollout); DQN single env only
     vec_env = DummyVecEnv([make_hl_env(low_level_model, seed=0)])
 
     model = DQN(

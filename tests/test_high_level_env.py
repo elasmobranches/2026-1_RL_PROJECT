@@ -21,13 +21,24 @@ def make_env(seed=0):
 def test_obs_shape():
     env = make_env()
     obs, _ = env.reset(seed=0)
-    assert obs.shape == (env.n_lanes,), f"Expected ({env.n_lanes},), got {obs.shape}"
+    # obs = [completion(n_lanes), distances(n_lanes)]
+    assert obs.shape == (env.n_lanes * 2,), f"Expected ({env.n_lanes * 2},), got {obs.shape}"
 
 
-def test_obs_all_zero_at_start():
+def test_obs_completion_all_zero_at_start():
     env = make_env()
     obs, _ = env.reset(seed=0)
-    assert np.all(obs == 0.0), f"Expected all zeros, got {obs}"
+    completion = obs[:env.n_lanes]
+    assert np.all(completion == 0.0), f"Completion should be 0 at start, got {completion}"
+
+
+def test_obs_distances_nonzero_at_start():
+    """Agent starts at col 1 (lane 0), so distances to other lanes must be > 0."""
+    env = make_env()
+    obs, _ = env.reset(seed=0)
+    distances = obs[env.n_lanes:]
+    assert distances[0] == 0.0, "Distance to lane 0 (col 1) should be 0 at start"
+    assert np.any(distances[1:] > 0.0), "Some lanes should be farther away"
 
 
 def test_action_space():
@@ -45,7 +56,7 @@ def test_step_returns_valid_obs():
     env = make_env()
     obs, _ = env.reset(seed=0)
     obs2, reward, terminated, truncated, info = env.step(0)
-    assert obs2.shape == (env.n_lanes,)
+    assert obs2.shape == (env.n_lanes * 2,)
     assert obs2.min() >= 0.0 and obs2.max() <= 1.0
 
 

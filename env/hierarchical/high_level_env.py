@@ -32,8 +32,9 @@ class HighLevelFarmEnv(gym.Env):
         self.n_lanes: int = len(self.lane_cols)
         self.max_lane_visits: int = max_lane_visits or self.n_lanes * 3
 
+        # obs = [lane_done_rates(n_lanes), normalized_distances(n_lanes)]
         self.observation_space = spaces.Box(
-            low=0.0, high=1.0, shape=(self.n_lanes,), dtype=np.float32
+            low=0.0, high=1.0, shape=(self.n_lanes * 2,), dtype=np.float32
         )
         self.action_space = spaces.Discrete(self.n_lanes)
         self._lane_visits: int = 0
@@ -44,17 +45,26 @@ class HighLevelFarmEnv(gym.Env):
         return self._get_hl_obs(), {}
 
     def _get_hl_obs(self) -> np.ndarray:
-        """Return fraction of adjacent crops in DONE_STATES per lane."""
-        obs = np.zeros(self.n_lanes, dtype=np.float32)
+        """
+        Returns 2*n_lanes observation:
+          [lane0_done%, ..., lane4_done%,        -- completion rates
+           dist_to_lane0, ..., dist_to_lane4]    -- normalised distances
+        Nearest unfinished lane will have low distance AND low done%.
+        """
+        completion = np.zeros(self.n_lanes, dtype=np.float32)
+        distances  = np.zeros(self.n_lanes, dtype=np.float32)
+        agent_col  = float(self.inner.agent_pos[1])
+        max_dist   = float(self.inner.W - 1)
+
         for i, lane_col in enumerate(self.lane_cols):
             crops = self.inner._adjacent_lane_crops(lane_col)
             if crops:
-                done = sum(
-                    1 for (r, c) in crops
-                    if self.inner.crop_states[r, c] in DONE_STATES
-                )
-                obs[i] = done / len(crops)
-        return obs
+                done = sum(1 for (r, c) in crops
+                           if self.inner.crop_states[r, c] in DONE_STATES)
+                completion[i] = done / len(crops)
+            distances[i] = abs(agent_col - lane_col) / max_dist
+
+        return np.concatenate([completion, distances])
 
     def _is_lane_already_done(self, lane_col: int) -> bool:
         """True if all crops adjacent to lane_col are already in DONE_STATES."""

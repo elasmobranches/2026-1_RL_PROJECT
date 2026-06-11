@@ -47,13 +47,13 @@ def make_lane_env(seed=0):
 
 def train_low_level(total_timesteps=500_000, save_path="models/lane_executor"):
     os.makedirs("models", exist_ok=True)
-    vec_env = DummyVecEnv([make_lane_env(seed=i) for i in range(4)])
+    vec_env = DummyVecEnv([make_lane_env(seed=i) for i in range(16)])
 
     model = MaskablePPO(
         policy="MlpPolicy",
         env=vec_env,
-        n_steps=2048,
-        batch_size=64,
+        n_steps=512,
+        batch_size=256,
         n_epochs=10,
         learning_rate=3e-4,
         gamma=0.99,
@@ -79,13 +79,14 @@ def make_hl_env(low_level_model, seed=0):
     return _init
 
 
-def train_high_level(low_level_model, total_timesteps=200_000, save_path="models/high_level"):
+def train_high_level(low_level_model, total_timesteps=50_000, save_path="models/high_level"):
+    # HL env is slow (each step runs full LL rollout), keep n_envs small
     vec_env = DummyVecEnv([make_hl_env(low_level_model, seed=i) for i in range(4)])
 
     model = PPO(
         policy="MlpPolicy",
         env=vec_env,
-        n_steps=512,
+        n_steps=128,
         batch_size=64,
         n_epochs=10,
         learning_rate=3e-4,
