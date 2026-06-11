@@ -464,20 +464,41 @@ SAC 실측 throughput: 73 fps (n_envs=1, Python env 병목)
 - 커버리지: ~0% (로봇이 시작 레인 근방에서 진동)
 - 원인: 희박 보상(sparse reward) + 124-dim obs에서 방향 탐색 학습 미수렴
 
-### 10.4 SAC vs PPO 비교 분석
+### 10.4 병목 원인 분석 (프로파일링 결과)
+
+실제 프로파일링을 통해 병목을 정확히 규명하였다:
+
+```
+env.step() 단독 (numpy 벡터화 후):  2641 fps  ← 환경 자체는 빠름
+SAC 학습 전체:                         60 fps  ← 병목
+```
+
+**병목은 SAC의 gradient update 빈도**였다. 환경 코드 문제가 아님.
+
+```
+PPO: 16 env × 512 steps = 8,192 steps 수집 후 → 한 번 update
+     → update overhead가 8,192 steps에 분산
+
+SAC: 매 1 step마다 → gradient_steps=2 번 update
+     → 매 step마다 GPU ↔ CPU 데이터 이동 오버헤드 누적
+     → tiny MLP(256×256)에서 update 자체는 빠르나 반복 횟수 과다
+```
+
+### 10.5 SAC vs PPO 비교 분석
 
 | 항목 | PPO (Steps 1~3) | SAC (Step 4) |
 |------|----------------|--------------|
-| 병렬 환경 | 16개 가능 | **1개** (off-policy 특성) |
-| Throughput | ~96,000 env-steps/s | **73 env-steps/s** |
-| 수렴 스텝 | 500k~1.5M | 2M+ 필요 (추정) |
-| 적합 상황 | 시뮬레이션 (빠른 반복) | **실제 로봇** (환경 비용 높을 때) |
+| 병렬 환경 | 16개 가능 | **1개** (replay buffer 특성) |
+| env throughput | 2,000+ fps (raw) | 2,641 fps (raw) — **동등** |
+| 학습 throughput | ~6,000 fps (amortised) | **60 fps** (update-bound) |
+| 병목 원인 | 없음 | **매 스텝 gradient update** |
+| 적합 상황 | 시뮬레이션 | **실제 로봇** (스텝 비용 높을 때) |
 
-### 10.5 결론 및 SAC 활용 방안
+### 10.6 결론 및 SAC 활용 방안
 
-SAC는 연속 행동 공간 설계 자체는 타당하나, Python 커스텀 환경에서는 **n_envs=1 제약으로 인한 throughput 병목**이 PPO 대비 치명적 단점이 된다. 시뮬레이션에서는 PPO+16 envs가 SAC보다 ~1300배 빠른 환경 상호작용을 제공한다.
+SAC의 낮은 throughput은 환경 설계 문제가 아니라 **off-policy 알고리즘의 구조적 특성**이다. SAC는 매 스텝 replay buffer에서 샘플링하고 gradient를 업데이트하므로, Python 시뮬레이션에서는 PPO의 batched update 전략 대비 throughput이 매우 낮다.
 
-반면 **실제 로봇 배포 시**에는 SAC가 유리하다: 실제 로봇 조작은 물리적으로 병렬화가 불가능하고(n_envs=1 강제), 각 스텝의 비용이 높으므로 샘플 효율이 높은 off-policy 방법이 적합하다. 즉 SAC는 **시뮬레이션 pre-training이 충분히 이루어진 후 실제 로봇 fine-tuning**에 가장 적합한 알고리즘이다.
+**실제 로봇 배포 시**에는 SAC가 적합하다: 물리적 로봇은 병렬화가 불가능하고(n_envs=1 강제), 각 스텝 비용이 높으므로 적은 샘플로 효율적으로 학습하는 off-policy 방법이 유리하다. 즉 SAC는 **시뮬레이션(PPO)으로 pre-training 후 실제 로봇 fine-tuning** 단계에 가장 적합하다.
 
 ---
 

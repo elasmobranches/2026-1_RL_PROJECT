@@ -86,15 +86,15 @@ class ContinuousFarmEnv(gym.Env):
             if (c - 1) % 3 == 0
         ]
 
-        # Crop cell centres
-        self.crop_centres: list[tuple[float, float]] = []
+        # Crop cell centres — stored as numpy array for vectorised distance calc
+        centres = []
         for row in range(2, self.G_H - 2):
             for col in range(1, self.G_W - 1):
-                if (col - 1) % 3 != 0:   # crop cols: (col-1)%3 in {1,2}
-                    cx = (col + 0.5) * CELL_SIZE
-                    cy = (row + 0.5) * CELL_SIZE
-                    self.crop_centres.append((cx, cy))
-        self.n_crops = len(self.crop_centres)
+                if (col - 1) % 3 != 0:
+                    centres.append([(col + 0.5) * CELL_SIZE, (row + 0.5) * CELL_SIZE])
+        self._crop_arr = np.array(centres, dtype=np.float64)   # (n_crops, 2)
+        self.crop_centres = [tuple(c) for c in self._crop_arr]  # keep for render compat
+        self.n_crops = len(self._crop_arr)
 
         # Spaces
         # obs: [rx, ry, cos_h, sin_h, (dx, dy, rev, state)*n_crops]
@@ -177,28 +177,29 @@ class ContinuousFarmEnv(gym.Env):
 
     # ──────────────────────────────────────────────────────────────────
     def _interact(self) -> float:
-        """Auto-scout and auto-harvest/pest within proximity radius."""
-        rx, ry = self.robot_pos
+        """Auto-scout and auto-harvest/pest — fully vectorised."""
+        dists = np.linalg.norm(self._crop_arr - self.robot_pos, axis=1)
         total = 0.0
-        for i, (cx, cy) in enumerate(self.crop_centres):
-            dist = np.sqrt((rx - cx) ** 2 + (ry - cy) ** 2)
 
-            # Scout: reveal hidden crop
-            if dist <= SCOUT_RADIUS and self.crop_states[i] == STATE_UNKNOWN:
-                self.crop_states[i] = self._true_states[i]
-                total += R_SCOUT_NEW
-                if self.crop_states[i] == STATE_NORMAL_DONE:
-                    total += R_NORMAL
+        # Scout: unknown crops within scout radius
+        scout_mask = (dists <= SCOUT_RADIUS) & (self.crop_states == STATE_UNKNOWN)
+        if scout_mask.any():
+            self.crop_states[scout_mask] = self._true_states[scout_mask]
+            newly_normal = scout_mask & (self.crop_states == STATE_NORMAL_DONE)
+            total += scout_mask.sum() * R_SCOUT_NEW
+            total += newly_normal.sum() * R_NORMAL
 
-            # Harvest
-            if dist <= ACT_RADIUS and self.crop_states[i] == STATE_HARVEST_PENDING:
-                self.crop_states[i] = STATE_HARVEST_DONE
-                total += R_HARVEST
+        # Harvest: harvest-pending crops within act radius
+        harvest_mask = (dists <= ACT_RADIUS) & (self.crop_states == STATE_HARVEST_PENDING)
+        if harvest_mask.any():
+            self.crop_states[harvest_mask] = STATE_HARVEST_DONE
+            total += harvest_mask.sum() * R_HARVEST
 
-            # Pest control
-            if dist <= ACT_RADIUS and self.crop_states[i] == STATE_PEST_PENDING:
-                self.crop_states[i] = STATE_PEST_DONE
-                total += R_PEST
+        # Pest: pest-pending crops within act radius
+        pest_mask = (dists <= ACT_RADIUS) & (self.crop_states == STATE_PEST_PENDING)
+        if pest_mask.any():
+            self.crop_states[pest_mask] = STATE_PEST_DONE
+            total += pest_mask.sum() * R_PEST
 
         return total
 
@@ -232,16 +233,12 @@ class ContinuousFarmEnv(gym.Env):
 
     # ──────────────────────────────────────────────────────────────────
     def _potential(self) -> float:
-        """φ(s) = −min_dist to nearest unprocessed crop (negative distance as potential)."""
-        rx, ry = self.robot_pos
-        unprocessed = [
-            (cx, cy) for i, (cx, cy) in enumerate(self.crop_centres)
-            if self.crop_states[i] not in DONE_STATES
-        ]
-        if not unprocessed:
+        """φ(s) = −min_dist to nearest unprocessed crop — vectorised."""
+        unprocessed_mask = ~np.isin(self.crop_states, list(DONE_STATES))
+        if not unprocessed_mask.any():
             return 0.0
-        min_dist = min(np.sqrt((rx - cx) ** 2 + (ry - cy) ** 2) for cx, cy in unprocessed)
-        return -min_dist * R_PROXIMITY   # negative: closer = higher potential
+        dists = np.linalg.norm(self._crop_arr[unprocessed_mask] - self.robot_pos, axis=1)
+        return -float(dists.min()) * R_PROXIMITY
 
     # ──────────────────────────────────────────────────────────────────
     def _get_obs(self) -> np.ndarray:
@@ -262,11 +259,12 @@ class ContinuousFarmEnv(gym.Env):
         return np.clip(obs, -1.0, 1.0)
 
     def _is_complete(self) -> bool:
-        return all(self.crop_states[i] in DONE_STATES for i in range(self.n_crops))
+        return bool(np.isin(self.crop_states, list(DONE_STATES)).all())
 
     def _coverage_rate(self) -> float:
-        done = sum(1 for s in self.crop_states if s in DONE_STATES)
-        return done / self.n_crops if self.n_crops > 0 else 1.0
+        if self.n_crops == 0:
+            return 1.0
+        return float(np.isin(self.crop_states, list(DONE_STATES)).sum()) / self.n_crops
 
     def render(self):
         print(f"pos=({self.robot_pos[0]:.2f},{self.robot_pos[1]:.2f}) "
