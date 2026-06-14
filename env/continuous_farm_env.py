@@ -114,7 +114,6 @@ class ContinuousFarmEnv(gym.Env):
         self.step_count  = 0
         self._rng = np.random.default_rng()
 
-    # ──────────────────────────────────────────────────────────────────
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         if seed is not None:
@@ -134,7 +133,6 @@ class ContinuousFarmEnv(gym.Env):
 
         return self._get_obs(), {}
 
-    # ──────────────────────────────────────────────────────────────────
     def step(self, action: np.ndarray):
         self.step_count += 1
         reward = R_STEP
@@ -175,7 +173,6 @@ class ContinuousFarmEnv(gym.Env):
             "step": self.step_count,
         }
 
-    # ──────────────────────────────────────────────────────────────────
     def _interact(self) -> float:
         """Auto-scout and auto-harvest/pest — fully vectorised."""
         dists = np.linalg.norm(self._crop_arr - self.robot_pos, axis=1)
@@ -203,7 +200,6 @@ class ContinuousFarmEnv(gym.Env):
 
         return total
 
-    # ──────────────────────────────────────────────────────────────────
     def _in_crop_bed(self, pos: np.ndarray) -> bool:
         """
         True if position is inside a non-drivable cell.
@@ -231,7 +227,6 @@ class ContinuousFarmEnv(gym.Env):
         inner_col = col - 1            # inner index (1-indexed col → 0-indexed)
         return inner_col % 3 != 0      # lane: (col-1)%3==0 → passable
 
-    # ──────────────────────────────────────────────────────────────────
     def _potential(self) -> float:
         """φ(s) = −min_dist to nearest unprocessed crop — vectorised."""
         unprocessed_mask = ~np.isin(self.crop_states, list(DONE_STATES))
@@ -240,7 +235,6 @@ class ContinuousFarmEnv(gym.Env):
         dists = np.linalg.norm(self._crop_arr[unprocessed_mask] - self.robot_pos, axis=1)
         return -float(dists.min()) * R_PROXIMITY
 
-    # ──────────────────────────────────────────────────────────────────
     def _get_obs(self) -> np.ndarray:
         rx, ry = self.robot_pos
         nx = rx / self.W_m * 2 - 1   # normalise to [−1, 1]

@@ -44,7 +44,6 @@ class ContinuousFarmEnvCurriculum(ContinuousFarmEnv):
             low=-1.0, high=1.0, shape=(obs_dim,), dtype=np.float32
         )
 
-    # ──────────────────────────────────────────────────────────────────
     def reset(self, seed=None, options=None):
         obs, info = super().reset(seed=seed)     # resets crop states, rng, etc.
 
@@ -57,7 +56,6 @@ class ContinuousFarmEnvCurriculum(ContinuousFarmEnv):
         self._prev_potential = self._potential()
         return self._get_obs(), info
 
-    # ──────────────────────────────────────────────────────────────────
     def _spawn_near_crop(self):
         """Level 0: spawn in the lane directly adjacent to a random crop."""
         idx = int(self._rng.integers(self.n_crops))
@@ -82,7 +80,6 @@ class ContinuousFarmEnvCurriculum(ContinuousFarmEnv):
             (row + 0.5) * CELL_SIZE,
         ])
 
-    # ──────────────────────────────────────────────────────────────────
     def _get_obs(self) -> np.ndarray:
         """24-dim obs: robot pose + K nearest unprocessed crops."""
         rx, ry = self.robot_pos
@@ -132,7 +129,6 @@ class ContinuousFarmEnvCurriculum(ContinuousFarmEnv):
         return np.clip(obs, -1.0, 1.0)
 
 
-# ──────────────────────────────────────────────────────────────────────
 class CurriculumCallback(BaseCallback):
     """
     Auto-advances curriculum level when recent success rate exceeds threshold.
