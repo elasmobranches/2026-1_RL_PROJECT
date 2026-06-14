@@ -112,6 +112,7 @@ class ContinuousFarmEnv(gym.Env):
         self._true_states  = np.zeros(self.n_crops, dtype=np.int32)
         self.crop_states   = np.zeros(self.n_crops, dtype=np.int32)
         self.step_count  = 0
+        self._prev_potential: float = 0.0   # bug fix: initialize before reset()
         self._rng = np.random.default_rng()
 
     def reset(self, seed=None, options=None):

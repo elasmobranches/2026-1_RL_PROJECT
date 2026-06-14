@@ -129,7 +129,7 @@ class FarmEnv(gym.Env):
         dr, dc = MOVE_DELTA[action]
         r, c = self.agent_pos
         nr, nc = r + dr, c + dc
-        if self.layout[nr, nc] == CELL_PATH:
+        if 0 <= nr < self.H and 0 <= nc < self.W and self.layout[nr, nc] == CELL_PATH:
             self.agent_pos = (nr, nc)
             return 0.0
         return REWARD_COLLISION

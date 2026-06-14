@@ -79,6 +79,7 @@ class HighLevelFarmEnv(gym.Env):
 
         self.inner.target_lane_col = target_col
         self.inner.step_count = 0
+        self.inner._goal_reached = False   # bug fix: reset for each new lane visit
 
         ll_obs = self.inner._get_obs()
         lane_done = lane_trunc = False
