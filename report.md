@@ -52,6 +52,8 @@
 
 ## 2. 강화학습 환경 설계
 
+> **이 섹션은 Step 1(FarmEnv) 기반 설계를 기준으로 설명한다.** Step 2/3 계층형 변형과 Step 4 연속 환경은 이 설계를 확장·수정하며, 각 단계 섹션에서 변경 사항을 별도로 기술한다.
+
 ### 2.1 맵 구조 (이산 격자 환경)
 
 현실 과수원·포도밭 구조를 모델링한 **2열 재배단(two-column bed)** 격자 맵.
@@ -121,7 +123,7 @@ P=주행 레인(통로), C=작물 셀, W=벽
 
 ### 2.4 보상 함수 (Reward Function)
 
-**이산 환경**:
+**이산 환경 (Step 1 기준)**:
 
 | 이벤트 | 보상 | 설계 근거 |
 |--------|------|----------|
@@ -133,19 +135,27 @@ P=주행 레인(통로), C=작물 셀, W=벽
 | 방제 성공 | +8.0 | 핵심 목표 |
 | 전체 완료 | +20.0 | 커버리지 완성 유도 |
 
-**연속 환경 추가**: Potential-based shaping `F = γ·φ(s') − φ(s)`, φ(s) = −min_dist × 0.3  
+> **Step 2/3 계층형 추가**: 레인 완료 시 +10.0 보너스(`REWARD_LANE_COMPLETE`) 추가.
+
+**연속 환경 (Step 4)**: 스케일 조정 (R_STEP=−0.05, R_COLLISION=−1.0, R_SCOUT_NEW=+1.5) + Potential-based shaping `F = γ·φ(s') − φ(s)`, φ(s) = −min_dist × 0.3  
 (단순 근접 보상은 시작점 정착 함정 유발 → 잠재 함수 차분 방식으로 국소 최적 방지)
 
 ### 2.5 에피소드 종료 조건
 
 ```python
-# 성공 종료 (terminated)
+# 성공 종료 (terminated) — Step 1 기준
 done = all(crop_states[c] in {1, 4, 5} for c in all_crop_cells)
 # 모든 C 셀이 정상확인(1) OR 수확완료(4) OR 방제완료(5)
 
 # 시간 초과 (truncated)
-done = step_count >= max_steps  # 이산: 540, 연속: 1200
+done = step_count >= max_steps
 ```
+
+| 모델 | 성공 종료 기준 | max_steps |
+|------|--------------|-----------|
+| Step 1 FarmEnv | 전체 작물 완료 | 540 |
+| Step 2/3 LaneExecutorEnv | **목표 레인** 작물 완료 | **180** (레인당) |
+| Step 4 연속 환경 | 전체 작물 완료 | 1200 |
 
 ### 2.6 작물 상태 초기 분포
 
