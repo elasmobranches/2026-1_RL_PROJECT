@@ -549,6 +549,42 @@ SAC의 낮은 throughput(60fps vs PPO 6,000fps)은 환경 설계가 아닌 **off
 
 ---
 
+## 11. 추가 알고리즘 비교 실험
+
+동일한 농업 로봇 환경에서 SAC 외에 RecurrentPPO, TD3, TQC를 추가로 실험하여 알고리즘 특성을 비교하였다.
+
+### 11.1 실험 설계
+
+| 알고리즘 | 환경 | 특징 |
+|----------|------|------|
+| RecurrentPPO (LSTM) | 이산 FarmEnv | LSTM으로 예찰 이력 기억 (부분 관측 대응) |
+| TD3 | 연속 ContinuousFarmEnv | SAC의 결정론적 버전 (엔트로피 없음) |
+| TQC | 연속 ContinuousFarmEnv | 분산적 Q-value 추정 (SAC 개선) |
+| SAC (비교 기준) | 연속 ContinuousFarmEnv | 최대 엔트로피 + off-policy |
+
+### 11.2 결과 비교
+
+| 알고리즘 | 성공률 | 커버리지 | 학습 스텝 |
+|----------|--------|---------|----------|
+| RecurrentPPO | 0% | 0.9% | 500k |
+| TD3 | 0% | 42.3% | 1.5M |
+| TQC | 3.3% | 60.0% | 1.5M |
+| **SAC** | **96.7%** | **99.8%** | 5M (3M+2M) |
+
+*(results_algo_comparison.png 참조)*
+
+### 11.3 분석
+
+**RecurrentPPO 실패 이유**: Action Masking 미지원 — 이산 환경(7가지 액션)에서 충돌 패널티만으로는 무효 액션을 억제하기 어려워 학습이 전혀 진행되지 않았다.
+
+**TD3 < SAC 이유**: TD3는 결정론적 정책(deterministic policy)으로 명시적 탐색 노이즈(Normal noise σ=0.2)를 사용하지만, 이 문제에서 핵심인 **필드 전체 탐색**에 충분한 탐색이 이루어지지 않았다.
+
+**TQC < SAC 이유**: TQC는 분산적 Q-value 추정으로 SAC보다 이론적으로 안정적이나, **SAC의 최대 엔트로피 목적함수(maximum entropy)**가 희박 보상 환경에서의 탐색에 결정적으로 유리하다. 엔트로피 항이 에이전트를 자연스럽게 미방문 영역으로 유도하는 반면, TQC는 이 메커니즘이 약하다.
+
+**핵심 발견**: 이 농업 커버리지 문제에서 **탐색 능력**이 성능을 결정하며, SAC의 최대 엔트로피 프레임워크가 다른 알고리즘 대비 압도적으로 유리하다.
+
+---
+
 ## 참고
 
 - Gymnasium: https://gymnasium.farama.org/
