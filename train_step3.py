@@ -109,6 +109,30 @@ def train_high_level_dqn(low_level_model, total_timesteps=30_000, save_path="mod
     return model
 
 
+def train_high_level_ppo(low_level_model, total_timesteps=50_000, save_path="models/high_level_s3_ppo"):
+    """PPO alternative for high-level — more stable than DQN for this small discrete problem."""
+    from stable_baselines3 import PPO
+    vec_env = DummyVecEnv([make_hl_env(low_level_model, seed=i) for i in range(4)])
+    model = PPO(
+        policy="MlpPolicy",
+        env=vec_env,
+        n_steps=128,
+        batch_size=64,
+        n_epochs=10,
+        learning_rate=3e-4,
+        gamma=0.99,
+        ent_coef=0.01,
+        verbose=1,
+        seed=0,
+    )
+    print("=== Step 3 Phase 2b: High-level PPO ===")
+    model.learn(total_timesteps=total_timesteps)
+    model.save(save_path)
+    vec_env.close()
+    print(f"High-level PPO model saved to {save_path}.zip")
+    return model
+
+
 if __name__ == "__main__":
     ll_model = train_low_level(total_timesteps=700_000)
     hl_model = train_high_level_dqn(ll_model, total_timesteps=300_000)
