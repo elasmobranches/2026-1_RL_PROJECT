@@ -73,7 +73,10 @@ def train_low_level(total_timesteps=500_000, save_path="models/lane_executor"):
 
 def make_hl_env(low_level_model, seed=0):
     def _init():
-        env = HighLevelFarmEnv(low_level_model, n_beds=4, field_height=8)
+        # Step 2 baseline: completion-only high-level observation.
+        env = HighLevelFarmEnv(
+            low_level_model, n_beds=4, field_height=8, include_distances=False
+        )
         env = Monitor(env)
         return env
     return _init

@@ -1,9 +1,9 @@
-# train_sac_curriculum.py — SAC + Curriculum Learning
+# train_sac_curriculum.py — SAC with simplified observation and fixed Level 2 start
 import os
 from stable_baselines3 import SAC
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
-from env.continuous_farm_env_curriculum import ContinuousFarmEnvCurriculum, CurriculumCallback
+from env.continuous_farm_env_curriculum import ContinuousFarmEnvCurriculum
 
 
 def make_env():
@@ -34,19 +34,8 @@ def train(total_timesteps=2_000_000, save_path="models/sac_curriculum"):
         seed=0,
     )
 
-    callback = CurriculumCallback(
-        vec_env,
-        success_threshold=0.4,   # 40% coverage to count as success
-        window=15,
-        level_up_at=0.6,         # 60% of recent episodes must succeed
-        verbose=1,
-    )
-
-    print("=== SAC + Curriculum (Level 0→1→2) ===")
-    print("  Level 0: spawn next to crop")
-    print("  Level 1: spawn in field lane")
-    print("  Level 2: spawn at headland (full episode)")
-    model.learn(total_timesteps=total_timesteps, callback=callback)
+    print("=== SAC + Simplified Observation (fixed Level 2 start) ===")
+    model.learn(total_timesteps=total_timesteps)
     model.save(save_path)
     vec_env.save("models/sac_curriculum_vecnorm.pkl")
     vec_env.close()

@@ -14,7 +14,8 @@ class HighLevelFarmEnv(gym.Env):
     (or max_steps_per_lane exceeded). The inner LaneExecutorEnv state persists
     across high-level steps — crops processed in earlier lanes stay processed.
 
-    Observation: fraction of adjacent crops done per lane (n_lanes-dim float32)
+    Observation: fraction of adjacent crops done per lane, optionally followed
+                 by normalized distance to each lane
     Action:      lane index to visit next (Discrete(n_lanes))
     """
 
@@ -24,6 +25,7 @@ class HighLevelFarmEnv(gym.Env):
         n_beds: int = 4,
         field_height: int = 8,
         max_lane_visits: int | None = None,
+        include_distances: bool = True,
     ):
         super().__init__()
         self.low_level_model = low_level_model
@@ -31,10 +33,11 @@ class HighLevelFarmEnv(gym.Env):
         self.lane_cols: list[int] = self.inner.lane_cols
         self.n_lanes: int = len(self.lane_cols)
         self.max_lane_visits: int = max_lane_visits or self.n_lanes * 3
+        self.include_distances = include_distances
 
-        # obs = [lane_done_rates(n_lanes), normalized_distances(n_lanes)]
+        obs_size = self.n_lanes * (2 if include_distances else 1)
         self.observation_space = spaces.Box(
-            low=0.0, high=1.0, shape=(self.n_lanes * 2,), dtype=np.float32
+            low=0.0, high=1.0, shape=(obs_size,), dtype=np.float32
         )
         self.action_space = spaces.Discrete(self.n_lanes)
         self._lane_visits: int = 0
@@ -46,15 +49,15 @@ class HighLevelFarmEnv(gym.Env):
 
     def _get_hl_obs(self) -> np.ndarray:
         """
-        Returns 2*n_lanes observation:
+        Returns n_lanes completion rates, optionally followed by distances:
           [lane0_done%, ..., lane4_done%,        -- completion rates
            dist_to_lane0, ..., dist_to_lane4]    -- normalised distances
         Nearest unfinished lane will have low distance AND low done%.
         """
         completion = np.zeros(self.n_lanes, dtype=np.float32)
-        distances  = np.zeros(self.n_lanes, dtype=np.float32)
-        agent_col  = float(self.inner.agent_pos[1])
-        max_dist   = float(self.inner.W - 1)
+        distances = np.zeros(self.n_lanes, dtype=np.float32)
+        agent_col = float(self.inner.agent_pos[1])
+        max_dist = float(self.inner.W - 1)
 
         for i, lane_col in enumerate(self.lane_cols):
             crops = self.inner._adjacent_lane_crops(lane_col)
@@ -62,9 +65,12 @@ class HighLevelFarmEnv(gym.Env):
                 done = sum(1 for (r, c) in crops
                            if self.inner.crop_states[r, c] in DONE_STATES)
                 completion[i] = done / len(crops)
-            distances[i] = abs(agent_col - lane_col) / max_dist
+            if self.include_distances:
+                distances[i] = abs(agent_col - lane_col) / max_dist
 
-        return np.concatenate([completion, distances])
+        if self.include_distances:
+            return np.concatenate([completion, distances])
+        return completion
 
     def _is_lane_already_done(self, lane_col: int) -> bool:
         """True if all crops adjacent to lane_col are already in DONE_STATES."""

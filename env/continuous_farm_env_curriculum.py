@@ -1,5 +1,5 @@
 """
-ContinuousFarmEnvCurriculum — Step 4 (v2): SAC + Curriculum Learning
+ContinuousFarmEnvCurriculum — Step 4: simplified observation with optional curriculum
 
 Curriculum levels (auto-advanced by CurriculumCallback):
   0: Robot spawns in the lane immediately adjacent to a random unprocessed crop
@@ -10,7 +10,7 @@ Curriculum levels (auto-advanced by CurriculumCallback):
      → agent learns full episode
 
 Observation simplification:
-  Original 124-dim (all 30 crops) → 24-dim (robot + 5 nearest unprocessed crops)
+  Original 124-dim (all 30 crops) → 28-dim (robot + 5 nearest unprocessed crops)
   Dramatically reduces policy search space.
 """
 from __future__ import annotations
@@ -81,7 +81,7 @@ class ContinuousFarmEnvCurriculum(ContinuousFarmEnv):
         ])
 
     def _get_obs(self) -> np.ndarray:
-        """24-dim obs: robot pose + K nearest unprocessed crops."""
+        """28-dim obs: robot pose + K nearest unprocessed crops."""
         rx, ry = self.robot_pos
         nx = rx / self.W_m * 2 - 1
         ny = ry / self.H_m * 2 - 1

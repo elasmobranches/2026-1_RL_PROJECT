@@ -12,8 +12,13 @@ class _MockLowLevel:
         return np.array(1), None       # ACT_DOWN
 
 
-def make_env(seed=0):
-    env = HighLevelFarmEnv(_MockLowLevel(), n_beds=2, field_height=2)
+def make_env(seed=0, include_distances=True):
+    env = HighLevelFarmEnv(
+        _MockLowLevel(),
+        n_beds=2,
+        field_height=2,
+        include_distances=include_distances,
+    )
     env.reset(seed=seed)
     return env
 
@@ -23,6 +28,12 @@ def test_obs_shape():
     obs, _ = env.reset(seed=0)
     # obs = [completion(n_lanes), distances(n_lanes)]
     assert obs.shape == (env.n_lanes * 2,), f"Expected ({env.n_lanes * 2},), got {obs.shape}"
+
+
+def test_completion_only_obs_shape():
+    env = make_env(include_distances=False)
+    obs, _ = env.reset(seed=0)
+    assert obs.shape == (env.n_lanes,)
 
 
 def test_obs_completion_all_zero_at_start():

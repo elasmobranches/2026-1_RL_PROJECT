@@ -28,7 +28,7 @@ def train(total_timesteps=1_500_000, save_path="models/tqc_continuous"):
         batch_size=4096,
         tau=0.005,
         gamma=0.99,
-        train_freq=16,         # same as SAC for fair comparison
+        train_freq=16,
         gradient_steps=1,
         ent_coef="auto",
         top_quantiles_to_drop_per_net=2,  # TQC key: drop top quantiles to reduce overestimation

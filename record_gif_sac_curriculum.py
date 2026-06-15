@@ -61,7 +61,7 @@ def render_frame(env, step, coverage, trajectory):
 
     ax.set_xlim(0, G_W*CELL_SIZE); ax.set_ylim(0, G_H*CELL_SIZE)
     ax.set_aspect('equal'); ax.set_xticks([]); ax.set_yticks([])
-    ax.set_title(f'[Step4 SAC+Curriculum] Step {step:4d}  |  Coverage {coverage:.0%}',
+    ax.set_title(f'[Step4 SAC + Simplified Obs] Step {step:4d}  |  Coverage {coverage:.0%}',
                  fontsize=10, pad=6)
     ax.legend(handles=LEGEND_PATCHES, loc='upper right',
               bbox_to_anchor=(1.35, 1.02), fontsize=7, framealpha=0.9)
