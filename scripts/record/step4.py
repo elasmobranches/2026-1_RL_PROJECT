@@ -14,6 +14,7 @@ from env.continuous_farm_env import (
     STATE_HARVEST_PENDING, STATE_PEST_PENDING,
     STATE_HARVEST_DONE, STATE_PEST_DONE, SCOUT_RADIUS,
 )
+from scripts.train.step4 import MODEL_PATH, VECNORM_PATH
 
 STATE_COLORS = {
     STATE_UNKNOWN: '#D8D8D8', STATE_NORMAL_DONE: '#33C733',
@@ -79,9 +80,9 @@ def record(seed=3, out='assets/demos/step4.gif', fps=8):
         return Monitor(env)
 
     vec_env = DummyVecEnv([make_env])
-    vec_env = VecNormalize.load('models/sac_curriculum_vecnorm.pkl', vec_env)
+    vec_env = VecNormalize.load(VECNORM_PATH, vec_env)
     vec_env.training = False; vec_env.norm_reward = False
-    model = SAC.load('models/sac_curriculum', env=vec_env)
+    model = SAC.load(MODEL_PATH, env=vec_env)
     # 렌더링에는 정규화 래퍼 내부의 원본 환경 상태가 필요하다.
     raw = vec_env.venv.envs[0].unwrapped
 

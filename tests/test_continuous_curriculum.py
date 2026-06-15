@@ -1,4 +1,5 @@
 from env.continuous_farm_env_curriculum import CurriculumCallback
+from scripts.train.step4 import MODEL_PATH, VECNORM_PATH, make_env
 
 
 class _CurriculumEnv:
@@ -34,3 +35,13 @@ def test_curriculum_uses_fresh_results_for_each_level():
     callback.locals = {"dones": [], "infos": []}
     callback._on_step()
     assert vec_env.envs[0].curriculum_level == 1
+
+
+def test_representative_step4_training_skips_curriculum():
+    env = make_env()
+    try:
+        assert env.unwrapped.curriculum_level == 2
+        assert MODEL_PATH == "models/sac_simplified"
+        assert VECNORM_PATH == "models/sac_simplified_vecnorm.pkl"
+    finally:
+        env.close()
