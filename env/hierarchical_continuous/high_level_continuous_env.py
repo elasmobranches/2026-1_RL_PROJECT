@@ -34,6 +34,7 @@ class HighLevelContinuousEnv(gym.Env):
         self.action_space = spaces.Discrete(self.n_lanes)
 
     def reset(self, seed=None, options=None):
+        super().reset(seed=seed)
         self.inner.reset(seed=seed)
         self._lane_visits = 0
         return self._get_hl_obs(), {}

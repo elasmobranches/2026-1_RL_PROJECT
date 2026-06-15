@@ -42,6 +42,7 @@ class HighLevelFarmEnv(gym.Env):
         self._lane_visits: int = 0
 
     def reset(self, seed: int | None = None, options: dict | None = None):
+        super().reset(seed=seed)
         self.inner.reset(seed=seed)
         self._lane_visits = 0
         return self._get_hl_obs(), {}

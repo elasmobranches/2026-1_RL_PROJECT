@@ -163,6 +163,8 @@ class CurriculumCallback(BaseCallback):
                 new_level = current + 1
                 for env in self.vec_env.envs:
                     env.unwrapped.curriculum_level = new_level
+                # 이전 단계의 성공 기록으로 다음 단계까지 연속 상승하지 않도록 비운다.
+                self._coverages.clear()
                 if self.verbose:
                     print(f"\n>>> Curriculum LEVEL UP: {current} → {new_level} "
                           f"(success={rate:.0%} over last {self.window} eps) <<<\n")

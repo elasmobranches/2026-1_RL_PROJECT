@@ -1,4 +1,4 @@
-# Models
+# 학습 모델
 
-Training scripts save model checkpoints and normalization statistics in this directory.
-Generated model files are intentionally excluded from Git because of their size.
+학습 스크립트가 모델 체크포인트와 정규화 통계를 이 폴더에 저장합니다.
+생성된 모델 파일은 용량이 크므로 Git에서 제외합니다.
