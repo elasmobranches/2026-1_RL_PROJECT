@@ -19,8 +19,13 @@ def run_flat(model, env, seed):
     return r, steps, info["coverage"], t
 
 
-def run_hl(hl_model, ll_model, seed, use_dqn=False):
-    env = HighLevelFarmEnv(ll_model, n_beds=4, field_height=8)
+def run_hl(hl_model, ll_model, seed, include_distances):
+    env = HighLevelFarmEnv(
+        ll_model,
+        n_beds=4,
+        field_height=8,
+        include_distances=include_distances,
+    )
     obs, _ = env.reset(seed=seed)
     r, total_steps, visits, t, tr = 0.0, 0, 0, False, False
     while not (t or tr):
@@ -48,7 +53,7 @@ def evaluate_all(n=50):
     # Step 2
     ll2 = MaskablePPO.load("models/lane_executor")
     hl2 = PPO.load("models/high_level")
-    data = [run_hl(hl2, ll2, ep) for ep in range(n)]
+    data = [run_hl(hl2, ll2, ep, include_distances=False) for ep in range(n)]
     r, s, c, su, v = zip(*data)
     results["Step2 Hierarchical PPO"] = dict(rewards=list(r), steps=list(s), covs=list(c), succs=list(su))
     print(f"\n[Step 2 - Hierarchical PPO]")
@@ -57,7 +62,7 @@ def evaluate_all(n=50):
     # Step 3
     ll3 = MaskablePPO.load("models/lane_executor_s3")
     hl3 = DQN.load("models/high_level_s3")
-    data = [run_hl(hl3, ll3, ep, use_dqn=True) for ep in range(n)]
+    data = [run_hl(hl3, ll3, ep, include_distances=True) for ep in range(n)]
     r, s, c, su, v = zip(*data)
     results["Step3 Goal+DQN"] = dict(rewards=list(r), steps=list(s), covs=list(c), succs=list(su))
     print(f"\n[Step 3 - Goal-reaching + DQN]")
