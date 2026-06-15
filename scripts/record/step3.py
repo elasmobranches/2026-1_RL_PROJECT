@@ -70,7 +70,7 @@ def render_frame(inner_env, step, coverage, lane_visit, target_col):
     return Image.open(buf).copy()
 
 
-def record(seed=5, out='agent_demo_step3.gif', fps=5):
+def record(seed=5, out='assets/demos/step3.gif', fps=5):
     ll_model = MaskablePPO.load('models/lane_executor_s3')
     hl_model = DQN.load('models/high_level_s3')
 
@@ -115,4 +115,4 @@ def record(seed=5, out='agent_demo_step3.gif', fps=5):
 
 
 if __name__ == '__main__':
-    record(seed=5, out='agent_demo_step3.gif', fps=5)
+    record(seed=5, out='assets/demos/step3.gif', fps=5)

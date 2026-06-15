@@ -29,10 +29,7 @@ def run_hl(hl_model, ll_model, seed, include_distances):
     obs, _ = env.reset(seed=seed)
     r, total_steps, visits, t, tr = 0.0, 0, 0, False, False
     while not (t or tr):
-        if use_dqn:
-            a, _ = hl_model.predict(obs, deterministic=True)
-        else:
-            a, _ = hl_model.predict(obs, deterministic=True)
+        a, _ = hl_model.predict(obs, deterministic=True)
         obs, rew, t, tr, info = env.step(int(a))
         r += rew; total_steps += info["steps_for_lane"]; visits += 1
     return r, total_steps, info["coverage"], t, visits
@@ -96,8 +93,9 @@ def _plot(results):
         ax.set_title(title); ax.set_xlabel(xlabel)
 
     plt.tight_layout()
-    plt.savefig("results_step3_comparison.png", dpi=140, bbox_inches="tight")
-    print("\nSaved: results_step3_comparison.png")
+    out = "assets/figures/results_step3_comparison.png"
+    plt.savefig(out, dpi=140, bbox_inches="tight")
+    print(f"\nSaved: {out}")
 
 
 if __name__ == "__main__":

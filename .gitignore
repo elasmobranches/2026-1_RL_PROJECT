@@ -4,7 +4,8 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
-models/
+models/*
+!models/README.md
 logs/
 *.zip
 episode_final_state.png

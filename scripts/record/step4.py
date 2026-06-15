@@ -73,7 +73,7 @@ def render_frame(env, step, coverage, trajectory):
     return Image.open(buf).copy()
 
 
-def record(seed=3, out='agent_demo_sac_curriculum.gif', fps=8):
+def record(seed=3, out='assets/demos/step4.gif', fps=8):
     def make_env():
         env = ContinuousFarmEnvCurriculum(); env.curriculum_level = 2
         return Monitor(env)
@@ -110,4 +110,4 @@ def record(seed=3, out='agent_demo_sac_curriculum.gif', fps=8):
 
 
 if __name__ == '__main__':
-    record(seed=3, out='agent_demo_sac_curriculum.gif', fps=8)
+    record(seed=3, out='assets/demos/step4.gif', fps=8)

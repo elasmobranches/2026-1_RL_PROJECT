@@ -85,8 +85,9 @@ def evaluate(n=30):
         ax.axvline(np.mean(data_r), color='red',  lw=2, ls='--')
         ax.set_title(title); ax.set_xlabel(xlabel); ax.legend(fontsize=8)
     plt.tight_layout()
-    plt.savefig('results_greedy_vs_rl.png', dpi=140, bbox_inches='tight')
-    print('\nSaved: results_greedy_vs_rl.png')
+    out = 'assets/figures/results_greedy_vs_rl.png'
+    plt.savefig(out, dpi=140, bbox_inches='tight')
+    print(f'\nSaved: {out}')
 
 
 if __name__ == '__main__':

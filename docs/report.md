@@ -54,7 +54,7 @@
 
 현실 온실의 수직재배 구조를 모델링한 **2열 재배단(two-column bed)** 격자 맵(Fig. 1)을 사용한다. 토마토·파프리카와 같은 작물은 줄기 양쪽으로 열매가 분포하므로, 로봇이 한쪽 레인에서 접근하면 안쪽 열만 스캔 가능하고 바깥쪽 열은 반대편 레인에서만 작업 가능하다. 이 **양면 접근(double-sided access) 제약**을 격자 상에서 표현하기 위해 단일 작물 줄을 안쪽·바깥쪽 두 열로 추상화하였다.
 
-![Fig. 1. 최종 농경지 맵 구조](map_structure.png)
+![Fig. 1. 최종 농경지 맵 구조](../assets/figures/map_structure.png)
 
 ```
 n_beds=4, field_height=8 → H=12, W=15
@@ -234,32 +234,29 @@ Ng et al.(1999)의 잠재 함수 차분 방식은 최적 정책 불변성을 보
 
 ```
 rlproject/
-├── env/
-│   ├── farm_env.py                       # Step 1 이산 환경
-│   ├── map_generator.py                  # 2열 재배단 맵 생성
-│   ├── continuous_farm_env.py            # Step 4 연속 환경
-│   ├── continuous_farm_env_curriculum.py # 커리큘럼 + nav_flags
-│   └── hierarchical/
-│       ├── lane_executor_env.py          # Step 2/3 Low-level
-│       └── high_level_env.py             # Step 2/3 High-level
-├── train.py                              # Step 1
-├── train_hierarchical.py                 # Step 2
-├── train_step3.py                        # Step 3
-├── train_sac_curriculum.py               # Step 4 SAC
-└── evaluate*.py / record_gif*.py
+├── env/                                  # Step별 Gymnasium 환경
+├── scripts/
+│   ├── train/                            # 대표 Step 1~4 학습
+│   ├── evaluate/                         # 성능 비교
+│   ├── record/                           # 데모 생성
+│   └── experiments/                      # 비교·보조·실패 실험
+├── tests/                                # 환경 동작 테스트
+├── models/                               # 학습 산출물 저장 위치
+├── assets/                               # 데모 및 결과 그림
+└── docs/report.md                        # 연구 보고서
 ```
 
 ```bash
 pip install -r requirements.txt
 
-python train.py                       # Step 1
-python train_hierarchical.py          # Step 2
-python train_step3.py                 # Step 3
-python train_sac_curriculum.py        # Step 4
+python -m scripts.train.step1
+python -m scripts.train.step2
+python -m scripts.train.step3
+python -m scripts.train.step4
 
-python evaluate_step3.py              # Step 1~3 비교
-python record_gif_step3.py            # Step 3 데모
-python record_gif_sac_curriculum.py   # Step 4 데모
+python -m scripts.evaluate.compare_steps
+python -m scripts.record.step3
+python -m scripts.record.step4
 ```
 
 ---
@@ -279,7 +276,7 @@ python record_gif_sac_curriculum.py   # Step 4 데모
 | **Step 3** | **DQN + 거리 인식 HL** | **100%** | **100%** | **141 ± 3** | **2.0** |
 | Step 4 | SAC + 단순화 관측 | 96.7% | 99.9% | 157 ± 194 | — (Flat이므로 측정 불가) |
 
-(Fig. 2 — `results_step3_comparison.png` 참조: Step 1~3의 보상·커버리지·스텝 분포 히스토그램)
+(Fig. 2 — `assets/figures/results_step3_comparison.png` 참조: Step 1~3의 보상·커버리지·스텝 분포 히스토그램)
 
 표 1과 Fig. 2에서 두 가지 패턴이 관찰된다. 첫째, **Step 3에서 평균 스텝 표준편차가 ±3으로 압도적으로 낮다** — 다른 단계는 ±80~349 수준이다. 둘째, Step 1→2로 가는 변화(96%→98%)보다 Step 2→3 변화(98%→100%)가 작아 보이지만, 평균 스텝은 198→141로 약 29% 감소하여 정책 품질의 개선이 더 크다.
 
@@ -287,7 +284,7 @@ python record_gif_sac_curriculum.py   # Step 4 데모
 
 Step 1의 최종 학습 스크립트는 총 500,000 스텝을 사용한다. 최종 평가에서 96% 성공률과 99.8% 평균 커버리지를 기록했으며, 이는 대부분의 에피소드에서 거의 모든 작물을 처리하는 정책이 학습되었음을 보여준다. 다만 저장소에는 원시 학습 로그가 포함되어 있지 않아 세부 수렴 시점을 현재 상태에서 독립적으로 재검증할 수는 없다.
 
-대표 정책 시연은 저장소의 `agent_demo.gif`에서 확인할 수 있다.
+대표 정책 시연은 저장소의 `assets/demos/step1.gif`에서 확인할 수 있다.
 
 GIF에서 두드러지는 행동 패턴은 **Boustrophedon(지그재그) 순회**다. 에이전트는 한 레인을 끝까지 내려간 뒤 헤드랜드를 거쳐 인접 레인으로 전환하고 다시 반대 방향으로 내려가는 패턴을 일관되게 보였다. 이 패턴은 환경 설계나 보상 함수에 명시적으로 인코딩되지 않았으며 오로지 "스텝당 −0.1" 패널티와 작업 보상의 균형에서 자발적으로 출현하였다.
 
@@ -308,7 +305,7 @@ GIF에서 두드러지는 행동 패턴은 **Boustrophedon(지그재그) 순회*
 
 평균 레인 방문 횟수가 5개 레인 전체 방문보다 훨씬 적은 점이 흥미롭다. 이는 하위 정책이 목표 레인까지 이동하는 경로에서 다른 레인의 인접 작물도 부수적으로 예찰·조치하기 때문이다(**암묵적 다중 레인 커버리지**). Step 3의 정책은 GIF에서 한눈에 확인 가능하다.
 
-(Fig. 4 — `agent_demo_step3.gif` 참조: 100% 성공·141 스텝의 정책 시연)
+(Fig. 4 — `assets/demos/step3.gif` 참조: 100% 성공·141 스텝의 정책 시연)
 
 ### 3.4 Step 3 정책의 정체 — RL vs Greedy 규칙 동등성 검증
 
@@ -321,7 +318,7 @@ Step 3 DQN의 학습된 정책이 어떤 전략을 보이는지 확인하기 위
 | Greedy nearest-lane (규칙) | 100% | 141 | ± 3 | 2.0 |
 | RL DQN + 거리 인식 obs | 100% | 141 | ± 3 | 2.0 |
 
-(Fig. 5 — `results_greedy_vs_rl.png` 참조: 두 방법의 스텝·커버리지 분포 겹침)
+(Fig. 5 — `assets/figures/results_greedy_vs_rl.png` 참조: 두 방법의 스텝·커버리지 분포 겹침)
 
 평가한 시드에서 두 방법의 성공률·스텝 수·커버리지·레인 방문 수 집계값이 동일하게 나타났다. 그러나 이 평가는 상태별 행동 일치율이나 통계적 가설 검정을 포함하지 않으므로, 두 정책이 모든 상태에서 행동적으로 동일하다고 결론 내리지는 않는다.
 
@@ -337,13 +334,13 @@ Step 3 DQN의 학습된 정책이 어떤 전략을 보이는지 확인하기 위
 | TQC | 3.3% | 60.0% | 1164 ± 196 | distributional Q |
 | **SAC** | **96.7%** | **99.9%** | **157 ± 194** | 최대 엔트로피 |
 
-(Fig. 6 — `results_algo_comparison.png` 참조: 세 알고리즘의 성공률·커버리지 막대그래프)
+(Fig. 6 — `assets/figures/results_algo_comparison.png` 참조: 세 알고리즘의 성공률·커버리지 막대그래프)
 
 각 최종 스크립트 설정에서 SAC가 가장 높은 성능을 보였다. TD3는 전체 작물을 완료하지 못했고, TQC도 대부분 max_steps=1200에 가까운 스텝을 사용한 반면 SAC는 평균 157스텝을 기록하였다. 이 격차에는 알고리즘 특성뿐 아니라 학습 예산과 업데이트 설정 차이도 영향을 주었을 수 있다.
 
 학습된 SAC 정책은 GIF에서 부드러운 곡선 궤적을 따라 작물 사이를 이동하며 근접 자동 작업을 수행한다. 원시 학습 로그와 모델 바이너리는 저장소 크기 절감을 위해 제외되어 있으므로, 보고된 수치는 재학습 없이는 현재 저장소만으로 독립 재현할 수 없다.
 
-(Fig. 7 — `agent_demo_sac_curriculum.gif` 참조)
+(Fig. 7 — `assets/demos/step4.gif` 참조)
 
 ### 3.6 보조 실험 — Action Masking의 효과
 
@@ -530,9 +527,10 @@ TD3와 TQC의 낮은 성능에는 탐색 부족이 영향을 주었을 가능성
 
 | 파일 | 내용 |
 |------|------|
-| `agent_demo.gif` | Step 1 MaskablePPO |
-| `agent_demo_step3.gif` | Step 3 Goal+DQN (100%) |
-| `agent_demo_sac_curriculum.gif` | Step 4 SAC + 단순화 관측 |
+| `assets/demos/step1.gif` | Step 1 MaskablePPO |
+| `assets/demos/step2.gif` | Step 2 Hierarchical PPO |
+| `assets/demos/step3.gif` | Step 3 Goal+DQN (100%) |
+| `assets/demos/step4.gif` | Step 4 SAC + 단순화 관측 |
 
 중간 실험 영상과 학습 모델은 저장소 크기를 줄이기 위해 제외하였다. 정량 비교 결과는 본문의 표와 결과 이미지에서 확인할 수 있다.
 
