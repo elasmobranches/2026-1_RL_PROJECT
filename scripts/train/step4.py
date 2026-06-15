@@ -1,4 +1,4 @@
-# train_sac_curriculum.py — SAC with simplified observation and fixed Level 2 start
+"""Step 4: 단순화 관측과 고정 헤드랜드 시작 조건에서 SAC를 학습한다."""
 import os
 from stable_baselines3 import SAC
 from stable_baselines3.common.monitor import Monitor
@@ -8,7 +8,7 @@ from env.continuous_farm_env_curriculum import ContinuousFarmEnvCurriculum
 
 def make_env():
     env = ContinuousFarmEnvCurriculum(n_beds=3, field_height=5)
-    env.curriculum_level = 2   # always headland start — skip curriculum phases
+    env.curriculum_level = 2   # 커리큘럼 단계를 건너뛰고 항상 헤드랜드에서 시작
     return Monitor(env)
 
 

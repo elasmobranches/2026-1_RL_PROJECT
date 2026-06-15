@@ -1,4 +1,4 @@
-# train_hierarchical.py
+"""Step 2: MaskablePPO 하위 정책과 PPO 상위 정책을 순서대로 학습한다."""
 import os
 import numpy as np
 import gymnasium as gym
@@ -16,10 +16,10 @@ def mask_fn(env):
     return env.unwrapped.action_masks()
 
 
-# ── Phase 1: Low-level (LaneExecutorEnv) ──────────────────────────────
+# 1단계: 목표 레인 내부 작업을 수행하는 하위 정책 학습
 
 class RandomLaneWrapper(gym.Wrapper):
-    """Sets a random target lane at each episode reset."""
+    """매 에피소드 reset 시 임의의 목표 레인을 지정한다."""
     def __init__(self, env):
         super().__init__(env)
         self._rng = np.random.default_rng()
@@ -69,11 +69,11 @@ def train_low_level(total_timesteps=500_000, save_path="models/lane_executor"):
     return model
 
 
-# ── Phase 2: High-level (HighLevelFarmEnv) ────────────────────────────
+# 2단계: 다음 목표 레인을 고르는 상위 정책 학습
 
 def make_hl_env(low_level_model, seed=0):
     def _init():
-        # Step 2 baseline: completion-only high-level observation.
+        # Step 2 기준 모델은 레인별 완료율만 상위 관측으로 사용한다.
         env = HighLevelFarmEnv(
             low_level_model, n_beds=4, field_height=8, include_distances=False
         )
@@ -83,7 +83,7 @@ def make_hl_env(low_level_model, seed=0):
 
 
 def train_high_level(low_level_model, total_timesteps=50_000, save_path="models/high_level"):
-    # HL env is slow (each step runs full LL rollout), keep n_envs small
+    # 상위 step마다 하위 rollout 전체를 실행하므로 병렬 환경 수를 작게 유지한다.
     vec_env = DummyVecEnv([make_hl_env(low_level_model, seed=i) for i in range(4)])
 
     model = PPO(
@@ -106,7 +106,7 @@ def train_high_level(low_level_model, total_timesteps=50_000, save_path="models/
     return model
 
 
-# ── Main ──────────────────────────────────────────────────────────────
+# 대표 Step 2 학습 순서
 
 if __name__ == "__main__":
     ll_model = train_low_level(total_timesteps=500_000)

@@ -1,1 +1,1 @@
-"""Demo recording entry points."""
+"""학습된 정책의 GIF 데모 생성 진입점."""

@@ -1,4 +1,4 @@
-# train_sac_large.py — Step 4 확장: n_beds=4 (더 큰 연속 환경)
+"""Step 4를 n_beds=4의 더 큰 연속 환경으로 확장한 SAC 실험."""
 import os
 from stable_baselines3 import SAC
 from stable_baselines3.common.monitor import Monitor
@@ -14,9 +14,8 @@ def make_env():
 
 def train(total_timesteps=1_500_000, save_path="models/sac_large"):
     os.makedirs("models", exist_ok=True)
-    # n_envs=4: env 수집 병렬화 (SAC는 off-policy라 n_envs>1 가능)
-    # train_freq=16: 4env × 4steps = 16 transitions 수집 후 1 gradient update
-    # batch_size=4096: RTX 3080 GPU 최대 활용
+    # 4개 환경에서 16개 전이를 수집한 뒤 큰 배치로 한 번 업데이트한다.
+    # 환경 수집 병렬화와 RTX 3080 활용도를 높이기 위한 설정이다.
     vec_env = DummyVecEnv([make_env for _ in range(4)])
     vec_env = VecNormalize(vec_env, norm_obs=True, norm_reward=False, clip_obs=5.0)
     model = SAC(

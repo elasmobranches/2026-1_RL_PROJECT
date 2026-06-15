@@ -82,7 +82,7 @@ def record(seed=3, out='assets/demos/step4.gif', fps=8):
     vec_env = VecNormalize.load('models/sac_curriculum_vecnorm.pkl', vec_env)
     vec_env.training = False; vec_env.norm_reward = False
     model = SAC.load('models/sac_curriculum', env=vec_env)
-    # VecNormalize wraps DummyVecEnv; access raw env via .venv.envs[0].unwrapped
+    # 렌더링에는 정규화 래퍼 내부의 원본 환경 상태가 필요하다.
     raw = vec_env.venv.envs[0].unwrapped
 
     obs = vec_env.reset()
@@ -94,11 +94,11 @@ def record(seed=3, out='assets/demos/step4.gif', fps=8):
     while not done:
         a, _ = model.predict(obs, deterministic=True)
         obs, r, done, info = vec_env.step(a)
-        # Record BEFORE auto-reset overwrites raw state
+        # 자동 reset이 원본 상태를 덮어쓰기 전에 마지막 프레임 정보를 저장한다.
         curr_cov = info[0].get('coverage', raw._coverage_rate())
         trajectory.append(raw.robot_pos.copy()); steps += 1
         if done[0]:
-            final_coverage = curr_cov   # save before env resets
+            final_coverage = curr_cov   # 환경 reset 전에 최종 커버리지 보존
         frames.append(render_frame(raw, steps, curr_cov, trajectory))
 
     frames += [frames[-1]] * (fps * 2)

@@ -1,4 +1,4 @@
-# evaluate_step3.py — Step 1 vs Step 2 vs Step 3 비교
+"""동일한 시드에서 Step 1~3 정책의 성공률·커버리지·스텝을 비교한다."""
 import matplotlib
 matplotlib.use('Agg')
 import numpy as np
@@ -38,7 +38,7 @@ def run_hl(hl_model, ll_model, seed, include_distances):
 def evaluate_all(n=50):
     results = {}
 
-    # Step 1
+    # Step 1: 단일 MaskablePPO 정책
     flat_env = FarmEnv(n_beds=4, field_height=8)
     flat_m = MaskablePPO.load("models/farm_ppo")
     data = [run_flat(flat_m, flat_env, ep) for ep in range(n)]
@@ -47,7 +47,7 @@ def evaluate_all(n=50):
     print(f"\n[Step 1 - Flat PPO]")
     print(f"  Success: {np.mean(su):.1%}  Steps: {np.mean(s):.1f}±{np.std(s):.1f}  Coverage: {np.mean(c):.1%}")
 
-    # Step 2
+    # Step 2: 완료율만 관측하는 PPO 상위 정책
     ll2 = MaskablePPO.load("models/lane_executor")
     hl2 = PPO.load("models/high_level")
     data = [run_hl(hl2, ll2, ep, include_distances=False) for ep in range(n)]
@@ -56,7 +56,7 @@ def evaluate_all(n=50):
     print(f"\n[Step 2 - Hierarchical PPO]")
     print(f"  Success: {np.mean(su):.1%}  Steps: {np.mean(s):.1f}±{np.std(s):.1f}  Coverage: {np.mean(c):.1%}  Visits: {np.mean(v):.1f}")
 
-    # Step 3
+    # Step 3: 완료율과 거리를 관측하는 DQN 상위 정책
     ll3 = MaskablePPO.load("models/lane_executor_s3")
     hl3 = DQN.load("models/high_level_s3")
     data = [run_hl(hl3, ll3, ep, include_distances=True) for ep in range(n)]

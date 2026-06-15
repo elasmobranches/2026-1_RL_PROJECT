@@ -1,11 +1,11 @@
 """
-HighLevelContinuousEnv: DQN high-level for Hierarchical SAC.
+계층형 SAC에서 DQN 상위 정책이 사용하는 연속 메타 환경.
 
-Same interface as HighLevelFarmEnv (Step 3) but wraps the continuous
-SAC low-level instead of the discrete MaskablePPO low-level.
+Step 3의 HighLevelFarmEnv와 같은 인터페이스를 사용하지만, 이산
+MaskablePPO 대신 연속 SAC 하위 정책을 실행한다.
 
-obs = [lane_done_rates(n_lanes), normalized_distances(n_lanes)]  → 10-dim
-action = lane index (Discrete n_lanes)
+관측 = [레인별 완료율, 레인별 정규화 거리]
+행동 = 다음에 방문할 레인 인덱스
 """
 from __future__ import annotations
 import numpy as np
@@ -23,7 +23,7 @@ class HighLevelContinuousEnv(gym.Env):
         self.inner = ContinuousLaneExecutorEnv(n_beds=n_beds, field_height=field_height)
         self.inner.curriculum_level = 2
 
-        self.lane_cols = self.inner.lane_x   # continuous x positions
+        self.lane_cols = self.inner.lane_x   # 레인의 연속 x 좌표
         self.n_lanes = len(self.lane_cols)
         self.max_lane_visits = max_lane_visits or self.n_lanes * 3
         self._lane_visits = 0
@@ -66,7 +66,7 @@ class HighLevelContinuousEnv(gym.Env):
         self.inner.target_lane_x = target_lx
         self.inner.step_count = 0
         self.inner._goal_reached_cont = False
-        self.inner._prev_potential = self.inner._potential()  # reset shaping baseline
+        self.inner._prev_potential = self.inner._potential()  # 새 목표 기준으로 shaping 기준값 갱신
 
         ll_obs = self.inner._get_obs()
         lane_done = lane_trunc = False
@@ -74,7 +74,7 @@ class HighLevelContinuousEnv(gym.Env):
         last_info: dict = {}
 
         while not (lane_done or lane_trunc):
-            # SAC predict (no action masking needed — continuous actions)
+            # 연속 행동을 출력하는 SAC에는 행동 마스킹이 필요하지 않다.
             ll_action, _ = self.ll.predict(ll_obs, deterministic=True)
             ll_obs, _, lane_done, lane_trunc, last_info = self.inner.step(ll_action)
             total_steps += 1

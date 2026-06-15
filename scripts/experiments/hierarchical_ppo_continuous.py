@@ -1,6 +1,4 @@
-# train_hierarchical_ppo_cont.py
-# Hierarchical PPO (continuous): PPO low-level + Greedy/DQN high-level
-# PPO can use n_envs=16 → much faster than SAC for training
+"""연속 PPO 하위 정책과 Greedy/DQN 상위 선택기를 비교하는 계층형 실험."""
 import os
 import numpy as np
 import gymnasium as gym
@@ -12,7 +10,7 @@ from env.hierarchical_continuous.high_level_continuous_env import HighLevelConti
 
 
 class RandomLaneWrapper(gym.Wrapper):
-    """Assigns a random target lane at each episode reset."""
+    """매 에피소드 시작 시 임의의 목표 레인을 지정한다."""
     def __init__(self, env):
         super().__init__(env)
         self._rng = np.random.default_rng()
@@ -38,8 +36,8 @@ def make_ll_env():
 def train_ppo_ll(total_timesteps=1_000_000, save_path="models/hppo_cont_ll"):
     os.makedirs("models", exist_ok=True)
 
-    # PPO supports n_envs=16 → ~10x faster than SAC (635fps → ~6000fps)
-    # No VecNormalize: obs already in [-1,1], avoids normalization mismatch in HL env
+    # PPO는 16개 환경에서 rollout을 병렬 수집한다.
+    # 관측이 이미 [-1, 1]이므로 상위 환경과의 정규화 불일치를 피한다.
     vec_env = DummyVecEnv([make_ll_env for _ in range(16)])
 
     model = PPO(

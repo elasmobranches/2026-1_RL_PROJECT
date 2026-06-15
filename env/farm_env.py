@@ -18,6 +18,14 @@ from env.map_generator import generate_field_map, init_crop_states
 
 
 class FarmEnv(gym.Env):
+    """
+    Step 1에서 사용하는 이산 격자 온실 환경.
+
+    로봇은 주행 레인만 이동하며, 인접 작물을 예찰한 뒤 공개된 상태에 따라
+    수확 또는 방제를 수행한다. 실제 작물 상태는 예찰 전까지 숨겨져 있어
+    부분 관측 문제를 구성한다.
+    """
+
     metadata = {"render_modes": ["human", "rgb_array"]}
 
     def __init__(
@@ -43,7 +51,7 @@ class FarmEnv(gym.Env):
         self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(obs_dim,), dtype=np.float32)
         self.action_space = spaces.Discrete(N_ACTIONS)
 
-        # Mutable state (initialised in reset)
+        # 에피소드마다 reset()에서 다시 초기화되는 상태
         self.agent_pos: tuple[int, int] = (1, 1)
         self._true_states: np.ndarray = np.zeros((self.H, self.W), dtype=np.int32)
         self.crop_states: np.ndarray = np.zeros((self.H, self.W), dtype=np.int32)
@@ -55,7 +63,7 @@ class FarmEnv(gym.Env):
         if seed is not None:
             self._rng = np.random.default_rng(seed)
 
-        self.agent_pos = (1, 1)          # top headland, first lane column
+        self.agent_pos = (1, 1)          # 상단 헤드랜드의 첫 번째 레인
         self._true_states = init_crop_states(self.layout, self._rng)
         self.crop_states = np.zeros((self.H, self.W), dtype=np.int32)
         self.step_count = 0
@@ -63,6 +71,7 @@ class FarmEnv(gym.Env):
         return self._get_obs(), {}
 
     def _get_obs(self) -> np.ndarray:
+        """맵·로봇 위치·예찰 여부·공개 작물 상태를 4채널 벡터로 반환한다."""
         ch0 = self.layout.astype(np.float32) / 2.0
         ch1 = np.zeros((self.H, self.W), dtype=np.float32)
         ch1[self.agent_pos] = 1.0
@@ -71,6 +80,7 @@ class FarmEnv(gym.Env):
         return np.concatenate([ch0.ravel(), ch1.ravel(), ch2.ravel(), ch3.ravel()])
 
     def _adjacent_crop_cells(self) -> list[tuple[int, int]]:
+        """현재 로봇 위치의 상하좌우에 인접한 작물 셀을 반환한다."""
         r, c = self.agent_pos
         result = []
         for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
@@ -80,7 +90,7 @@ class FarmEnv(gym.Env):
         return result
 
     def action_masks(self) -> np.ndarray:
-        """Required by MaskablePPO (sb3-contrib)."""
+        """현재 상태에서 실행 가능한 행동만 MaskablePPO에 전달한다."""
         masks = np.zeros(N_ACTIONS, dtype=bool)
         r, c = self.agent_pos
 
@@ -135,6 +145,7 @@ class FarmEnv(gym.Env):
         return REWARD_COLLISION
 
     def _handle_scout(self) -> float:
+        """인접한 미예찰 작물의 실제 상태를 공개하고 예찰 보상을 계산한다."""
         total = 0.0
         for pos in self._adjacent_crop_cells():
             if self.crop_states[pos] == STATE_UNKNOWN:
@@ -161,6 +172,7 @@ class FarmEnv(gym.Env):
         return total
 
     def _is_complete(self) -> bool:
+        """모든 작물이 정상 확인·수확 완료·방제 완료 상태인지 확인한다."""
         return all(self.crop_states[p] in DONE_STATES for p in self._crop_cells)
 
     def _coverage_rate(self) -> float:

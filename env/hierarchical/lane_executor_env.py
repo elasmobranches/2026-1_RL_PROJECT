@@ -16,12 +16,11 @@ from env.constants import (
 
 class LaneExecutorEnv(FarmEnv):
     """
-    Low-level env: navigate to target lane and process all adjacent crops.
+    Step 2·3의 하위 정책이 사용하는 목표 레인 실행 환경.
 
-    Extends FarmEnv with:
-    - ch4 (target lane indicator) added to observation → 5*H*W obs
-    - Terminates when all crops adjacent to target_lane_col are in DONE_STATES
-    - max_steps_per_lane replaces max_steps for episode limit
+    FarmEnv에 목표 레인을 표시하는 ch4를 추가하여 5*H*W 관측을 만든다.
+    목표 레인에 인접한 모든 작물이 완료 상태가 되면 에피소드를 종료하며,
+    max_steps_per_lane을 레인 한 번 처리의 시간 제한으로 사용한다.
     """
 
     def __init__(
@@ -37,7 +36,7 @@ class LaneExecutorEnv(FarmEnv):
         self.max_steps_per_lane: int = max_steps_per_lane or self.H * self.W
         self.target_lane_col: int = self.lane_cols[0]
 
-        # Override observation space: 5 channels
+        # 부모 환경의 4채널 관측에 목표 레인 채널을 추가한다.
         self.observation_space = spaces.Box(
             low=0.0, high=1.0, shape=(5 * self.H * self.W,), dtype=np.float32
         )
@@ -46,11 +45,11 @@ class LaneExecutorEnv(FarmEnv):
         obs, info = super().reset(seed=seed)
         self.target_lane_col = (options or {}).get("target_lane_col", self.lane_cols[0])
         self.step_count = 0
-        self._goal_reached: bool = False   # tracks first arrival at target lane this episode
+        self._goal_reached: bool = False   # 목표 레인 최초 도착 보상의 중복 지급 방지
         return self._get_obs(), info
 
     def _get_obs(self) -> np.ndarray:
-        base = super()._get_obs()          # 4 * H * W
+        base = super()._get_obs()          # 부모 환경의 4 * H * W 관측
         ch4 = np.zeros((self.H, self.W), dtype=np.float32)
         ch4[:, self.target_lane_col] = 1.0
         return np.concatenate([base, ch4.ravel()])
@@ -68,7 +67,7 @@ class LaneExecutorEnv(FarmEnv):
         elif action == ACT_PEST:
             reward += self._handle_pest()
 
-        # Goal-reaching: first arrival at target lane column
+        # 목표 레인 열에 처음 도착했을 때만 도달 보상을 지급한다.
         if not self._goal_reached and self.agent_pos[1] == self.target_lane_col:
             reward += REWARD_GOAL_REACH
             self._goal_reached = True

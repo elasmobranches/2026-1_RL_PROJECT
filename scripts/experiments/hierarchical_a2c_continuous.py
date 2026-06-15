@@ -1,16 +1,9 @@
-# train_hierarchical_a2c_cont.py
-# Hierarchical A2C (continuous): A2C low-level + Greedy high-level
-#
-# A2C vs PPO:
-#   - No clipping → more aggressive updates
-#   - n_epochs=1 always (single update per rollout)
-#   - Uses RMSProp by default (original A3C optimizer)
-#   - Typically needs smaller learning rate and shorter n_steps
-#
-# Why A2C on continuous lane executor:
-#   - Direct comparison against PPO LL and SAC LL
-#   - On-policy like PPO, so n_envs=16 is valid
-#   - No VecNormalize (obs already in [-1,1]; avoids HL obs mismatch)
+"""연속 A2C 하위 정책과 Greedy 상위 선택기를 결합한 계층형 비교 실험.
+
+A2C는 PPO처럼 On-policy이지만 clipping 없이 rollout마다 한 번 업데이트하고
+기본 최적화기로 RMSProp을 사용한다. PPO·SAC 하위 정책과 직접 비교하기
+위해 사용하며, 관측이 이미 [-1, 1]이므로 VecNormalize는 적용하지 않는다.
+"""
 import os
 import time
 import numpy as np
@@ -23,7 +16,7 @@ from env.hierarchical_continuous.high_level_continuous_env import HighLevelConti
 
 
 class RandomLaneWrapper(gym.Wrapper):
-    """Assigns a random target lane at each episode reset."""
+    """매 에피소드 시작 시 임의의 목표 레인을 지정한다."""
     def __init__(self, env):
         super().__init__(env)
         self._rng = np.random.default_rng()
@@ -47,14 +40,14 @@ def make_ll_env():
 
 
 def benchmark_fps(n_steps_val: int, n_envs: int) -> float:
-    """Measure actual fps before committing to full training."""
+    """전체 학습 전에 실제 처리 속도(fps)를 측정한다."""
     vec_env = DummyVecEnv([make_ll_env for _ in range(n_envs)])
     model = A2C(
         "MlpPolicy", vec_env,
         n_steps=n_steps_val, learning_rate=7e-4,
         verbose=0, seed=0,
     )
-    model.learn(total_timesteps=n_steps_val * n_envs * 3)  # warmup 3 updates
+    model.learn(total_timesteps=n_steps_val * n_envs * 3)  # 업데이트 3회 워밍업
     t0 = time.time()
     model.learn(total_timesteps=n_steps_val * n_envs * 10, reset_num_timesteps=False)
     fps = (n_steps_val * n_envs * 10) / (time.time() - t0)
@@ -66,15 +59,8 @@ def train(total_timesteps: int = 1_000_000,
           save_path: str = "models/ha2c_cont_ll") -> A2C:
     os.makedirs("models", exist_ok=True)
 
-    # A2C hyperparameters:
-    # n_steps=256: balanced between stability (longer) and frequency (shorter)
-    # learning_rate=7e-4: standard A2C/A3C rate; lower than PPO (3e-4) for stability
-    # gae_lambda=1.0: use full Monte Carlo returns (original A3C style, no GAE)
-    # ent_coef=0.01: encourage exploration
-    # vf_coef=0.25: value function loss weight (lower than PPO's 0.5)
-    # normalize_advantage=False: keep raw advantages (A2C original)
-    # use_rms_prop=True: RMSProp as in original A3C paper
-    # rms_prop_eps=1e-5: numerical stability for RMSProp
+    # rollout 안정성과 업데이트 빈도를 절충한 A2C 설정이다.
+    # 원본 A3C 방식에 가깝게 Monte Carlo return과 RMSProp을 사용한다.
     N_ENVS = 16
     N_STEPS = 256
 
@@ -155,7 +141,7 @@ def evaluate(model: A2C,
 
 
 if __name__ == "__main__":
-    # Benchmark fps before full training
+    # 전체 학습 전에 처리 속도를 확인한다.
     print("Benchmarking A2C fps...")
     fps = benchmark_fps(n_steps_val=256, n_envs=16)
     eta_min = 1_000_000 / fps / 60

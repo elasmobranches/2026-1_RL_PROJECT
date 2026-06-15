@@ -1,1 +1,1 @@
-"""Executable training, evaluation, recording, and experiment modules."""
+"""학습·평가·데모 기록·보조 실험 실행 모듈."""

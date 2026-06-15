@@ -1,6 +1,8 @@
-# train_td3.py — TD3 on continuous ContinuousFarmEnvCurriculum
-# TD3 = deterministic SAC: no entropy, twin critics, delayed policy update
-# Compare with SAC to see if entropy is beneficial for this exploration-heavy task
+"""연속 환경에서 TD3와 SAC의 탐색 성능을 비교하는 실험.
+
+TD3는 엔트로피 항 없이 결정론적 정책, twin critic, 지연 정책 업데이트를
+사용하므로 탐색이 중요한 본 문제에서 SAC와 차이가 있는지 확인한다.
+"""
 import os
 from stable_baselines3 import TD3
 from stable_baselines3.common.monitor import Monitor
@@ -21,11 +23,11 @@ def train(total_timesteps=1_500_000, save_path="models/td3_continuous"):
     vec_env = DummyVecEnv([make_env for _ in range(4)])
     vec_env = VecNormalize(vec_env, norm_obs=True, norm_reward=False, clip_obs=5.0)
 
-    # TD3 requires explicit exploration noise (no entropy like SAC)
+    # TD3에는 SAC의 엔트로피 항이 없으므로 탐색 노이즈를 명시적으로 추가한다.
     n_actions = vec_env.action_space.shape[0]
     action_noise = NormalActionNoise(
         mean=np.zeros(n_actions),
-        sigma=0.2 * np.ones(n_actions),  # moderate exploration
+        sigma=0.2 * np.ones(n_actions),  # 중간 수준의 탐색 노이즈
     )
 
     model = TD3(
@@ -37,9 +39,9 @@ def train(total_timesteps=1_500_000, save_path="models/td3_continuous"):
         batch_size=4096,
         tau=0.005,
         gamma=0.99,
-        train_freq=16,         # update every 16 steps → fast throughput
+        train_freq=16,         # 16스텝마다 업데이트하여 처리량 향상
         gradient_steps=1,
-        policy_delay=2,        # TD3 key: delayed policy update
+        policy_delay=2,        # TD3의 지연 정책 업데이트
         target_noise_clip=0.5,
         action_noise=action_noise,
         policy_kwargs={"net_arch": [256, 256]},

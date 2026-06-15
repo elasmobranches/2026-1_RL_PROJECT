@@ -1,4 +1,4 @@
-# train.py
+"""Step 1: 단일 MaskablePPO 정책을 이산 FarmEnv에서 학습한다."""
 import os
 import numpy as np
 from sb3_contrib import MaskablePPO

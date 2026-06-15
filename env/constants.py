@@ -1,9 +1,9 @@
-# Cell types (ch0)
+# 맵 셀 종류(ch0)
 CELL_PATH = 0
 CELL_CROP = 1
 CELL_WALL = 2
 
-# Crop/action states (ch3)
+# 작물 관측 및 작업 상태(ch3)
 STATE_UNKNOWN         = 0
 STATE_NORMAL_DONE     = 1
 STATE_HARVEST_PENDING = 2
@@ -13,7 +13,7 @@ STATE_PEST_DONE       = 5
 
 DONE_STATES = {STATE_NORMAL_DONE, STATE_HARVEST_DONE, STATE_PEST_DONE}
 
-# Action indices
+# 이산 행동 인덱스
 ACT_UP      = 0
 ACT_DOWN    = 1
 ACT_LEFT    = 2
@@ -30,7 +30,7 @@ MOVE_DELTA = {
     ACT_RIGHT: ( 0,  1),
 }
 
-# Reward constants
+# 공통 보상 상수
 REWARD_STEP            = -0.1
 REWARD_COLLISION       = -2.0
 REWARD_SCOUT_NEW       =  1.0
@@ -39,16 +39,16 @@ REWARD_HARVEST         = 10.0
 REWARD_PEST            =  8.0
 REWARD_COMPLETION      = 20.0
 
-# Crop state probability (normal / harvest / pest)
+# 초기 작물 상태 확률: 정상 / 수확 필요 / 방제 필요
 CROP_STATE_PROBS = [0.60, 0.25, 0.15]
 CROP_STATE_VALUES = [STATE_NORMAL_DONE, STATE_HARVEST_PENDING, STATE_PEST_PENDING]
 
-# Hierarchical RL (Step 2)
-REWARD_LANE_COMPLETE = 10.0   # low-level: bonus when target lane fully processed
-REWARD_LANE_STEP     = -0.1   # low-level: per-step penalty (same as flat REWARD_STEP; -0.3 destabilised training)
-REWARD_HL_LANE_DONE  =  5.0   # high-level: bonus when dispatched lane completes
-REWARD_HL_ALL_DONE   = 20.0   # high-level: bonus when all crops done
-HL_STEP_COST         =  0.01  # high-level: per-step cost coefficient (not a reward, hence no REWARD_ prefix)
+# 계층형 강화학습 보상(Step 2)
+REWARD_LANE_COMPLETE = 10.0   # 하위 정책: 목표 레인의 모든 작업 완료 보너스
+REWARD_LANE_STEP     = -0.1   # 하위 정책: 스텝 비용(-0.3은 학습을 불안정하게 만들었음)
+REWARD_HL_LANE_DONE  =  5.0   # 상위 정책: 새로 선택한 레인 완료 보너스
+REWARD_HL_ALL_DONE   = 20.0   # 상위 정책: 전체 작물 완료 보너스
+HL_STEP_COST         =  0.01  # 상위 정책: 하위 정책이 사용한 스텝당 비용 계수
 
-# Step 3: Goal-reaching
-REWARD_GOAL_REACH    =  2.0   # low-level: first arrival at target lane column this episode
+# Step 3: 목표 레인 도달 보상
+REWARD_GOAL_REACH    =  2.0   # 하위 정책: 에피소드에서 목표 레인에 처음 도착할 때 지급

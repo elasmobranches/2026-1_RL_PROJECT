@@ -1,1 +1,1 @@
-"""Auxiliary, comparison, and unsuccessful experiment entry points."""
+"""보조 비교 및 실패 실험을 보존한 실행 모듈."""

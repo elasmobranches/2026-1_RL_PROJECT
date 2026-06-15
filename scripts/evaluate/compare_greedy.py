@@ -1,4 +1,4 @@
-# evaluate_greedy_lane.py — Step 2/3 Greedy nearest-lane vs RL high-level 비교
+"""Step 3 상위 정책과 가장 가까운 미완료 레인 규칙의 성능을 비교한다."""
 import matplotlib
 matplotlib.use('Agg')
 import numpy as np
@@ -10,14 +10,14 @@ from env.constants import DONE_STATES
 
 
 def greedy_select_lane(hl_env):
-    """Greedy: pick the nearest unfinished lane to current robot position."""
+    """현재 로봇 위치에서 가장 가까운 미완료 레인을 선택한다."""
     agent_col = hl_env.inner.agent_pos[1]
     unfinished = [
         lane_col for lane_col in hl_env.lane_cols
         if not hl_env._is_lane_already_done(lane_col)
     ]
     if not unfinished:
-        return hl_env.lane_cols[0]  # fallback
+        return hl_env.lane_cols[0]  # 모든 레인이 완료된 경우의 안전한 기본값
     return min(unfinished, key=lambda col: abs(col - agent_col))
 
 
@@ -72,7 +72,7 @@ def evaluate(n=30):
     g_covs, g_steps, g_succs = summary(greedy_r, 'Greedy nearest-lane')
     r_covs, r_steps, r_succs = summary(rl_r,    'RL DQN High-level')
 
-    # Plot
+    # 두 방법의 스텝 수와 커버리지 분포를 겹쳐 그린다.
     fig, axes = plt.subplots(1, 2, figsize=(11, 4))
     fig.suptitle('Greedy Nearest-Lane vs RL High-Level', fontsize=12, fontweight='bold')
     for ax, data_g, data_r, xlabel, title in [

@@ -1,17 +1,13 @@
 """
-ContinuousFarmEnvCurriculum — Step 4: simplified observation with optional curriculum
+Step 4의 단순화 관측 및 선택적 커리큘럼 환경.
 
-Curriculum levels (auto-advanced by CurriculumCallback):
-  0: Robot spawns in the lane immediately adjacent to a random unprocessed crop
-     → agent learns scout/harvest/pest first
-  1: Robot spawns at a random field lane position (anywhere in the field)
-     → agent learns to navigate within field
-  2: Normal headland start (same as original env)
-     → agent learns full episode
+커리큘럼 단계(CurriculumCallback 사용 시 자동 상승):
+  0: 임의 작물 바로 옆 레인에서 시작하여 작업 수행을 먼저 학습
+  1: 필드 내부의 임의 레인에서 시작하여 필드 주행을 학습
+  2: 일반 헤드랜드에서 시작하여 전체 에피소드를 학습
 
-Observation simplification:
-  Original 124-dim (all 30 crops) → 28-dim (robot + 5 nearest unprocessed crops)
-  Dramatically reduces policy search space.
+관측은 전체 작물을 포함한 124차원에서 로봇과 가까운 미처리 작물 5개만
+포함하는 28차원으로 줄여 정책의 탐색 공간을 단순화한다.
 """
 from __future__ import annotations
 import numpy as np
@@ -20,11 +16,11 @@ from stable_baselines3.common.callbacks import BaseCallback
 from env.continuous_farm_env import ContinuousFarmEnv, CELL_SIZE, DONE_STATES, STATE_UNKNOWN, MAX_STEPS
 
 
-N_OBS_CROPS = 5   # observe K nearest unprocessed crops
+N_OBS_CROPS = 5   # 관측에 포함할 가까운 미처리 작물 수
 
 
 class ContinuousFarmEnvCurriculum(ContinuousFarmEnv):
-    """Curriculum-enabled wrapper around ContinuousFarmEnv."""
+    """ContinuousFarmEnv에 커리큘럼 시작점과 28차원 관측을 추가한 환경."""
 
     def __init__(
         self,
@@ -37,34 +33,33 @@ class ContinuousFarmEnvCurriculum(ContinuousFarmEnv):
                          max_steps=max_steps, render_mode=render_mode)
         self.curriculum_level: int = 0
 
-        # obs = robot(2) + heading(2) + nav_flags(4) + K×4 crop features
-        # nav_flags: can_move_N, can_move_S, can_move_E, can_move_W (0 or 1)
+        # 관측 = 로봇 위치(2) + 방향(2) + 이동 가능 방향(4) + 작물 특징(K×4)
         obs_dim = 4 + 4 + N_OBS_CROPS * 4
         self.observation_space = spaces.Box(
             low=-1.0, high=1.0, shape=(obs_dim,), dtype=np.float32
         )
 
     def reset(self, seed=None, options=None):
-        obs, info = super().reset(seed=seed)     # resets crop states, rng, etc.
+        obs, info = super().reset(seed=seed)     # 작물 상태와 난수 생성기 등을 초기화
 
         if self.curriculum_level == 0:
             self._spawn_near_crop()
         elif self.curriculum_level == 1:
             self._spawn_in_field_lane()
-        # level 2+: keep headland start from super().reset()
+        # 레벨 2 이상에서는 부모 환경의 헤드랜드 시작점을 유지한다.
 
         self._prev_potential = self._potential()
         return self._get_obs(), info
 
     def _spawn_near_crop(self):
-        """Level 0: spawn in the lane directly adjacent to a random crop."""
+        """레벨 0: 임의 작물에 바로 인접한 레인에서 시작한다."""
         idx = int(self._rng.integers(self.n_crops))
         cx, cy = self._crop_arr[idx]
 
-        # Find nearest driving lane x
+        # 선택한 작물과 가장 가까운 주행 레인을 찾는다.
         nearest_lane = min(self.lane_x, key=lambda lx: abs(lx - cx))
 
-        # Clamp y to field rows
+        # 시작 y 좌표를 실제 필드 행 안으로 제한한다.
         field_y_min = 2.5 * CELL_SIZE
         field_y_max = (self.G_H - 2.5) * CELL_SIZE
         ry = float(np.clip(cy, field_y_min, field_y_max))
@@ -72,16 +67,16 @@ class ContinuousFarmEnvCurriculum(ContinuousFarmEnv):
         self.robot_pos = np.array([nearest_lane, ry])
 
     def _spawn_in_field_lane(self):
-        """Level 1: spawn at a random (lane, field-row) position."""
+        """레벨 1: 필드 내부의 임의 레인과 행에서 시작한다."""
         lane_idx = int(self._rng.integers(len(self.lane_x)))
-        row = int(self._rng.integers(2, self.G_H - 2))   # field rows only
+        row = int(self._rng.integers(2, self.G_H - 2))   # 헤드랜드를 제외한 필드 행
         self.robot_pos = np.array([
             self.lane_x[lane_idx],
             (row + 0.5) * CELL_SIZE,
         ])
 
     def _get_obs(self) -> np.ndarray:
-        """28-dim obs: robot pose + K nearest unprocessed crops."""
+        """로봇 자세·이동 가능 방향·가까운 작물로 구성된 28차원 관측을 반환한다."""
         rx, ry = self.robot_pos
         nx = rx / self.W_m * 2 - 1
         ny = ry / self.H_m * 2 - 1
@@ -90,14 +85,14 @@ class ContinuousFarmEnvCurriculum(ContinuousFarmEnv):
 
         dists = np.linalg.norm(self._crop_arr - self.robot_pos, axis=1)
 
-        # Prioritise unprocessed crops, sort by distance
+        # 미처리 작물을 우선하고 각 집합을 거리순으로 정렬한다.
         unproc = np.where(~np.isin(self.crop_states, list(DONE_STATES)))[0]
         proc   = np.where( np.isin(self.crop_states, list(DONE_STATES)))[0]
 
         sorted_unproc = unproc[np.argsort(dists[unproc])] if len(unproc) else np.array([], int)
         sorted_proc   = proc  [np.argsort(dists[proc  ])] if len(proc  ) else np.array([], int)
 
-        # Fill K slots: unprocessed first, then processed, then dummy padding
+        # K개 슬롯을 미처리 작물, 처리 완료 작물, 더미 순서로 채운다.
         k_indices = list(sorted_unproc[:N_OBS_CROPS])
         if len(k_indices) < N_OBS_CROPS:
             k_indices += list(sorted_proc[:N_OBS_CROPS - len(k_indices)])
@@ -111,12 +106,11 @@ class ContinuousFarmEnvCurriculum(ContinuousFarmEnv):
                 1.0 if self.crop_states[idx] != STATE_UNKNOWN else 0.0,
                 self.crop_states[idx] / 5.0,
             ]
-        # Pad with far-away done dummy entries
+        # 작물이 부족하면 완료 상태를 나타내는 더미 특징으로 채운다.
         while len(crop_feats) < N_OBS_CROPS * 4:
             crop_feats += [0.0, 0.0, 1.0, 0.2]
 
-        # 4-direction navigation flags (1=passable, 0=blocked)
-        # step > 0.5*CELL_SIZE to probe into adjacent cell
+        # 인접 셀 안쪽까지 검사해 네 방향 이동 가능 여부를 만든다(1=가능, 0=막힘).
         step = CELL_SIZE * 0.6
         nav = [
             0.0 if self._in_crop_bed(self.robot_pos + np.array([ 0,  step])) else 1.0,  # N
@@ -131,11 +125,11 @@ class ContinuousFarmEnvCurriculum(ContinuousFarmEnv):
 
 class CurriculumCallback(BaseCallback):
     """
-    Auto-advances curriculum level when recent success rate exceeds threshold.
+    최근 성공률이 기준을 넘으면 커리큘럼 단계를 자동으로 올린다.
 
-    success = episode coverage >= success_threshold (default 0.7 = 70% crops done)
-    window  = number of recent episodes to evaluate
-    level_up_at = fraction of window that must be successes to advance
+    성공은 에피소드 커버리지가 success_threshold 이상인 경우로 정의한다.
+    최근 window개 에피소드 중 성공 비율이 level_up_at 이상이면 다음 단계로
+    이동한다.
     """
 
     def __init__(

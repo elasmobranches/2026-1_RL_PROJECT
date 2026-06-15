@@ -1,4 +1,4 @@
-# train_step3.py  — Step 3: Goal-reaching Low-level + DQN High-level
+"""Step 3: 목표 도달 보상을 쓰는 하위 정책과 거리 관측 DQN 상위 정책을 학습한다."""
 import os
 import numpy as np
 import gymnasium as gym
@@ -17,6 +17,7 @@ def mask_fn(env):
 
 
 class RandomLaneWrapper(gym.Wrapper):
+    """매 에피소드마다 하위 정책이 처리할 목표 레인을 무작위로 바꾼다."""
     def __init__(self, env):
         super().__init__(env)
         self._rng = np.random.default_rng()
@@ -35,7 +36,7 @@ class RandomLaneWrapper(gym.Wrapper):
         return self.env.action_masks()
 
 
-# ── Phase 1: Low-level with Goal-reaching reward ──────────────────────
+# 1단계: 목표 레인 도달 보상을 포함한 하위 정책 학습
 
 def make_lane_env(seed=0):
     def _init():
@@ -71,7 +72,7 @@ def train_low_level(total_timesteps=700_000, save_path="models/lane_executor_s3"
     return model
 
 
-# ── Phase 2: High-level with DQN (off-policy, discrete) ───────────────
+# 2단계: 거리 관측을 사용하는 이산 Off-policy DQN 상위 정책 학습
 
 def make_hl_env(low_level_model, seed=0):
     def _init():
@@ -84,7 +85,7 @@ def make_hl_env(low_level_model, seed=0):
 
 
 def train_high_level_dqn(low_level_model, total_timesteps=30_000, save_path="models/high_level_s3"):
-    # HL env slow (each step = full LL rollout); DQN single env only
+    # 상위 step마다 하위 rollout 전체를 실행하며 DQN은 단일 환경을 사용한다.
     vec_env = DummyVecEnv([make_hl_env(low_level_model, seed=0)])
 
     model = DQN(
@@ -112,7 +113,7 @@ def train_high_level_dqn(low_level_model, total_timesteps=30_000, save_path="mod
 
 
 def train_high_level_ppo(low_level_model, total_timesteps=50_000, save_path="models/high_level_s3_ppo"):
-    """PPO alternative for high-level — more stable than DQN for this small discrete problem."""
+    """작은 이산 문제에서 DQN과 비교하기 위한 PPO 상위 정책 대안."""
     from stable_baselines3 import PPO
     vec_env = DummyVecEnv([make_hl_env(low_level_model, seed=i) for i in range(4)])
     model = PPO(

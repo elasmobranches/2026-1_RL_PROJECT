@@ -1,4 +1,4 @@
-# train_hierarchical_sac.py — Hierarchical SAC: DQN(HL) + SAC(LL continuous)
+"""연속 SAC 하위 정책과 DQN 상위 정책을 결합한 계층형 비교 실험."""
 import os
 import numpy as np
 import gymnasium as gym
@@ -10,10 +10,10 @@ from env.hierarchical_continuous.high_level_continuous_env import HighLevelConti
 
 
 def mask_fn(env):
-    return None  # SAC — no masking needed
+    return None  # 연속 행동을 사용하는 SAC에는 마스킹이 필요하지 않다.
 
 
-# ── Phase 1: SAC Low-level ────────────────────────────────────────────
+# 1단계: 연속 SAC 하위 정책 학습
 
 class RandomLaneWrapper(gym.Wrapper):
     def __init__(self, env):
@@ -28,7 +28,7 @@ class RandomLaneWrapper(gym.Wrapper):
         self.unwrapped._goal_reached_cont = False
         if not kwargs.get("options"):
             kwargs["options"] = {}
-        kwargs["options"]["target_lane_col"] = 2  # headland start (level 2)
+        kwargs["options"]["target_lane_col"] = 2  # 레벨 2 헤드랜드 시작
         return self.env.reset(**kwargs)
 
     def action_masks(self):
@@ -44,9 +44,8 @@ def make_ll_env():
 
 def train_sac_ll(total_timesteps=1_000_000, save_path="models/hsac_ll"):
     os.makedirs("models", exist_ok=True)
-    # n_envs=4, train_freq=16 → fast throughput
-    # No VecNormalize: obs is already in [-1,1] by design.
-    # This lets HL env call inner._get_obs() directly without normalization mismatch.
+    # 관측은 이미 [-1, 1]이므로 VecNormalize를 사용하지 않는다.
+    # 상위 환경이 정규화 불일치 없이 내부 관측을 직접 사용할 수 있다.
     vec_env = DummyVecEnv([make_ll_env for _ in range(4)])
 
     model = SAC(
@@ -58,7 +57,7 @@ def train_sac_ll(total_timesteps=1_000_000, save_path="models/hsac_ll"):
         batch_size=4096,
         tau=0.005,
         gamma=0.99,
-        train_freq=16,        # fast: collect 16 steps per gradient update
+        train_freq=16,        # 업데이트마다 16스텝을 수집해 처리량 향상
         gradient_steps=1,
         ent_coef="auto",
         policy_kwargs={"net_arch": [256, 256]},
@@ -74,7 +73,7 @@ def train_sac_ll(total_timesteps=1_000_000, save_path="models/hsac_ll"):
     return model
 
 
-# ── Phase 2: DQN High-level ───────────────────────────────────────────
+# 2단계: 다음 레인을 선택하는 DQN 상위 정책 학습
 
 def make_hl_env(ll_model):
     def _init():

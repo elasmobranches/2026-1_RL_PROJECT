@@ -1,6 +1,8 @@
-# train_tqc.py — TQC (Truncated Quantile Critics) on continuous env
-# TQC = SAC + distributional RL (quantile regression instead of point estimates)
-# More stable Q-value estimation → less overestimation → better final performance
+"""연속 환경에서 분포형 가치 추정을 사용하는 TQC 비교 실험.
+
+TQC는 SAC에 quantile regression을 결합해 Q값 과대추정을 줄이는 알고리즘으로,
+가치 추정 안정성이 최종 성능에 미치는 영향을 확인한다.
+"""
 import os
 from sb3_contrib import TQC
 from stable_baselines3.common.monitor import Monitor
@@ -31,7 +33,7 @@ def train(total_timesteps=1_500_000, save_path="models/tqc_continuous"):
         train_freq=16,
         gradient_steps=1,
         ent_coef="auto",
-        top_quantiles_to_drop_per_net=2,  # TQC key: drop top quantiles to reduce overestimation
+        top_quantiles_to_drop_per_net=2,  # 상위 quantile을 제거해 과대추정 완화
         policy_kwargs={"net_arch": [256, 256], "n_critics": 2},
         verbose=1,
         seed=0,

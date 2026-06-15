@@ -1,1 +1,1 @@
-"""Representative Step 1-4 training entry points."""
+"""대표 Step 1~4 학습 진입점."""

@@ -1,7 +1,8 @@
-# train_recurrent_ppo.py — RecurrentPPO (LSTM) on discrete FarmEnv
-# Motivation: partial observability (hidden crop states until scouted)
-# → LSTM can remember scouting history within an episode
-# Note: RecurrentPPO does NOT support action masking → use soft collision penalty
+"""부분 관측 대응을 위해 이산 FarmEnv에서 RecurrentPPO(LSTM)를 비교한다.
+
+LSTM은 에피소드 안의 예찰 이력을 기억할 수 있지만 RecurrentPPO는 행동
+마스킹을 지원하지 않으므로 충돌 페널티만으로 무효 행동을 학습해야 한다.
+"""
 import os
 import numpy as np
 from sb3_contrib import RecurrentPPO
@@ -12,8 +13,7 @@ from env.farm_env import FarmEnv
 
 def make_env(seed=0):
     def _init():
-        # No ActionMasker — RecurrentPPO handles continuous/discrete natively
-        # Collision penalty (-2.0) discourages invalid actions organically
+    # ActionMasker 없이 충돌 페널티(-2.0)로 무효 행동을 억제한다.
         env = FarmEnv(n_beds=4, field_height=8)
         return Monitor(env)
     return _init
@@ -21,13 +21,13 @@ def make_env(seed=0):
 
 def train(total_timesteps=500_000, save_path="models/recurrent_ppo"):
     os.makedirs("models", exist_ok=True)
-    # RecurrentPPO supports n_envs > 1 (on-policy → fast parallel collection)
+    # On-policy RecurrentPPO는 여러 환경에서 rollout을 병렬 수집할 수 있다.
     vec_env = DummyVecEnv([make_env(seed=i) for i in range(16)])
 
     model = RecurrentPPO(
         policy="MlpLstmPolicy",
         env=vec_env,
-        n_steps=512,           # steps per env before update
+        n_steps=512,           # 업데이트 전 환경별 수집 스텝
         batch_size=256,
         n_epochs=10,
         learning_rate=3e-4,

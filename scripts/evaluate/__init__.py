@@ -1,1 +1,1 @@
-"""Evaluation entry points."""
+"""학습된 정책의 성능 비교 및 평가 진입점."""
